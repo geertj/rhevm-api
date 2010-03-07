@@ -53,7 +53,7 @@ class serve(Command):
         host, port = self.listen.split(':')
         port = int(port)
         _setup_logging(debug)
-        server = make_server(host, port, RhevApp)
+        server = make_server(host, port, RhevmApp)
         print 'Listening on %s:%s' (address, port)
         print 'Press CTRL-C to quit'
         server.serve_forever()
@@ -75,7 +75,7 @@ def main():
     address = mobj.group(1)
     port = int(mobj.group(2))
     _setup_logging(opts.debug)
-    server = make_server(address, port, RhevApp)
+    server = make_server(address, port, RhevmApp)
     print 'Listening on %s:%s' % (address, port)
     print 'Press CTRL-C to quit'
     try:

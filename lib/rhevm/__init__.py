@@ -9,6 +9,6 @@
 name = 'rhevm-api'
 version = '0.1'
 
-from rhevapi.error import Error
-from rhevapi.powershell import PowerShell
-from rhevapi.application import RhevmApp
+from rhevm.error import Error
+from rhevm.powershell import PowerShell
+from rhevm.application import RhevmApp

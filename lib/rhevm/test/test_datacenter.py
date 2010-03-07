@@ -9,10 +9,10 @@
 import httplib as http
 from xml.etree import ElementTree as etree
 
-from rhevm.test.base import RhevTest
+from rhevm.test.base import RhevmTest
 
 
-class TestDataCenter(RhevTest): 
+class TestDataCenter(RhevmTest): 
 
     def test_list(self):
         ref = self.ps.execute('Select-DataCenter')

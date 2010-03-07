@@ -10,6 +10,7 @@ import threading
 from nose.tools import assert_raises
 
 from rhevm.powershell import PowerShell, Error
+from rhevm.test.base import RhevmTest
 
 
 class TestPowerShell(RhevmTest):

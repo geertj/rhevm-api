@@ -108,7 +108,7 @@ class RhevmApp(Application):
         powershell = PowerShell()
         rhevm.api.powershell._register(powershell)
         try:
-            return super(RhevApp, self).respond()
+            return super(RhevmApp, self).respond()
         finally:
             rhevm.api.powershell._release()
             powershell.close()

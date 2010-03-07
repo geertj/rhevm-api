@@ -18,7 +18,7 @@ from ConfigParser import ConfigParser
 
 from rest.server import make_server
 from rhevm.powershell import PowerShell
-from rhevm.application import RhevApp
+from rhevm.application import RhevmApp
 
 
 class TestError(Exception):
@@ -64,7 +64,7 @@ class RhevmTest(object):
         password = self.config.get('test', 'password')
         self.ps = PowerShell()
         self.ps.execute('Login-User %s %s' % (username, password))
-        self.server = make_server('localhost', 0, RhevApp)
+        self.server = make_server('localhost', 0, RhevmApp)
         self.thread = threading.Thread(target=self.server.serve_forever)
         self.thread.start()
         time.sleep(0.5)
