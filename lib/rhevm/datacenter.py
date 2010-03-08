@@ -6,8 +6,35 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
+from xml.etree import ElementTree as etree
+from rest import InputFilter, OutputFilter
+
+from rest.api import request
 from rhevm.api import powershell
 from rhevm.collection import RhevmCollection
+
+
+class DataCenterInput(InputFilter):
+    """Fix some ideosyncrasies with respect to property names."""
+    
+    def filter(self, input):
+        if not isinstance(input, dict):
+            return input
+        if 'id' in input:
+            input['datacenterid'] = input.pop('id')
+        if 'type' in input and request.match['action'] == 'update':
+            input['datacentertype'] = input.pop['type']
+        return input
+
+
+class DataCenterOutput(OutputFilter):
+
+    def filter(self, output):
+        if not isinstance(output, dict):
+            return output
+        if 'datacenterid' in output:
+            output['id'] = output.pop('datacenterid')
+        return output
 
 
 class DataCenterCollection(RhevmCollection):

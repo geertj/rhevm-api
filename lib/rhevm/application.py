@@ -15,7 +15,8 @@ from rest import (Application, InputFilter, OutputFilter,
 from rest.api import request, response, collection
 
 import rhevm.api
-from rhevm.datacenter import DataCenterCollection
+from rhevm.datacenter import (DataCenterCollection, DataCenterInput,
+                              DataCenterOutput)
 from rhevm.powershell import PowerShell, PowerShellError
 
 
@@ -28,10 +29,11 @@ class XmlInput(InputFilter):
         try:
             xml = etree.fromstring(input)
         except:
+            print 'illegal xml: >%s<' % input
             raise RestError(http.BAD_REQUEST, reason='Illegal XML input')
         result = {}
         for child in xml:
-            result[child.tag] = child.text
+            result[child.tag.lower()] = child.text
         return result
 
 
@@ -42,14 +44,14 @@ class XmlOutput(OutputFilter):
         if isinstance(output, dict):
             root = etree.Element(collection.objectname)
             for key in output:
-                elem = etree.SubElement(root, key)
+                elem = etree.SubElement(root, key.lower())
                 elem.text = output[key]
         elif isinstance(output, list):
             root = etree.Element(collection.name)
             for entry in output:
                 elem = etree.SubElement(root, collection.objectname)
                 for key in entry:
-                    subelem = etree.SubElement(elem, key)
+                    subelem = etree.SubElement(elem, key.lower())
                     subelem.text = entry[key]
         else:
             return output
@@ -101,8 +103,12 @@ class RhevmApp(Application):
         self.add_input_filter(None, None, RequireAuthentication())
         self.add_input_filter(None, 'create', XmlInput())
         self.add_input_filter(None, 'update', XmlInput())
-        self.add_output_filter(None, 'show', XmlOutput(), -1)
-        self.add_output_filter(None, 'list', XmlOutput(), -1)
+        self.add_input_filter('datacenters', None, DataCenterInput(),
+                priority=90)
+        self.add_output_filter(None, 'show', XmlOutput())
+        self.add_output_filter(None, 'list', XmlOutput())
+        self.add_output_filter('datacenters', None, DataCenterOutput(),
+                priority=10)
 
     def respond(self):
         powershell = PowerShell()
