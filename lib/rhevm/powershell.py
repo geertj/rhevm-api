@@ -66,8 +66,6 @@ class PowerShell(object):
                 result[-1][key] = value
         return result
 
-    _re_error_header = re.compile(
-            '([A-Z][A-Za-z]+-[A-Z][A-Za-z]+\s*:\s*)+(.*)')
     _re_error_end_header = re.compile('At line:\d+')
     _re_error_property = re.compile(
             '\s+\+ (CategoryInfo|FullyQualifiedErrorId)\s+:\s+(.*?)\s*$')
@@ -80,10 +78,7 @@ class PowerShell(object):
         error = PowerShellError()
         for line in lines:
             if state == 'READ_ERROR_MESSAGE':
-                mobj = self._re_error_header.match(line)
-                if not mobj:
-                    continue
-                error.message = mobj.group(2)
+                error.message = line
                 state = 'CONTINUE_ERROR_MESSAGE'
             elif state == 'CONTINUE_ERROR_MESSAGE':
                 mobj = self._re_error_end_header.match(line)

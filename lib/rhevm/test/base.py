@@ -70,7 +70,7 @@ class RhevmTest(object):
         time.sleep(0.5)
         self.client = HTTPConnection(*self.server.address)
         auth = '%s:%s' % (username, password)
-        auth = 'Basic %s' % auth.encode('base64')
+        auth = 'Basic %s' % auth.encode('base64').rstrip()
         self.headers = { 'Authorization': auth }
 
     def tearDown(self):

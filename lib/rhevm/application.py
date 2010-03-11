@@ -100,15 +100,15 @@ class RhevmApp(Application):
 
     def setup_filters(self):
         super(RhevmApp, self).setup_filters()
-        self.add_input_filter(None, None, RequireAuthentication())
-        self.add_input_filter(None, 'create', XmlInput())
-        self.add_input_filter(None, 'update', XmlInput())
-        self.add_input_filter('datacenters', None, DataCenterInput(),
-                priority=90)
-        self.add_output_filter(None, 'show', XmlOutput())
-        self.add_output_filter(None, 'list', XmlOutput())
-        self.add_output_filter('datacenters', None, DataCenterOutput(),
-                priority=10)
+        self.add_input_filter(RequireAuthentication())
+        self.add_input_filter(XmlInput(), action='create')
+        self.add_input_filter(XmlInput(), action='update')
+        self.add_output_filter(XmlOutput(), action='show')
+        self.add_output_filter(XmlOutput(), action='list')
+
+    def load_modules(self):
+        super(RhevmApp, self).load_modules()
+        self.load_module('rhevm.datacenter')
 
     def respond(self):
         powershell = PowerShell()
