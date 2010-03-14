@@ -6,109 +6,23 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-import binascii
-import httplib as http
-from xml.etree import ElementTree as etree
-
-from rest import (Application, InputFilter, OutputFilter,
-                  Error as RestError)
-from rest.api import request, response, collection
-
+from rest import Application
 import rhevm.api
-from rhevm.datacenter import (DataCenterCollection, DataCenterInput,
-                              DataCenterOutput)
-from rhevm.powershell import PowerShell, PowerShellError
-
-
-class XmlInput(InputFilter):
-    """Convert XML input to a dictionary representation."""
-
-    def filter(self, input):
-        if request.header('Content-Type') != 'text/xml':
-            raise Error, http.UNSUPPORTED_MEDIA_TYPE
-        try:
-            xml = etree.fromstring(input)
-        except:
-            print 'illegal xml: >%s<' % input
-            raise RestError(http.BAD_REQUEST, reason='Illegal XML input')
-        result = {}
-        for child in xml:
-            result[child.tag.lower()] = child.text
-        return result
-
-
-class XmlOutput(OutputFilter):
-    """Convert a (list of) dictionary representation of XML to XML."""
-
-    def filter(self, output):
-        if isinstance(output, dict):
-            root = etree.Element(collection.objectname)
-            for key in output:
-                elem = etree.SubElement(root, key.lower())
-                elem.text = output[key]
-        elif isinstance(output, list):
-            root = etree.Element(collection.name)
-            for entry in output:
-                elem = etree.SubElement(root, collection.objectname)
-                for key in entry:
-                    subelem = etree.SubElement(elem, key.lower())
-                    subelem.text = entry[key]
-        else:
-            return output
-        output = etree.tostring(root)
-        response.set_header('Content-Type', 'text/xml')
-        return output
-
-
-class RequireAuthentication(InputFilter):
-    """Require Basic authentication."""
-
-    def filter(self, input):
-        auth = request.header('Authorization')
-        if not auth:
-            headers = [('WWW-Authenticate', 'Basic realm=rhev')]
-            raise RestError(http.UNAUTHORIZED, headers,
-                    reason='No Authorization header')
-        try:
-            method, auth = auth.split(' ')
-        except ValueError:
-            raise RestError(http.BAD_REQUEST,
-                reason='Illegal Authorization header')
-        if method != 'Basic':
-            headers = [('WWW-Authenticate', 'Basic realm=rhev')]
-            raise RestError(http.UNAUTHORIZED, headers,
-                    reason='Illegal Authorization scheme')
-        try:
-            username, password = auth.decode('base64').split(':')
-        except (ValueError, binascii.Error):
-            raise RestError(http.BAD_REQUEST,
-                    reason='Illegal Authorization value')
-        try:
-            rhevm.api.powershell.execute('Login-User %s %s' % (username, password))
-        except PowerShellError:
-            headers = [('WWW-Authenticate', 'Basic realm=rhev')]
-            raise RestError(http.UNAUTHORIZED, headers,
-                    reason='Illegal username/password')
-        return input
+from rhevm.filter import (RequireAuthentication, StructuredInput,
+                          StructuredOutput)
+from rhevm.powershell import PowerShell
 
 
 class RhevmApp(Application):
     """The RHEVM API application."""
 
-    def setup_collections(self):
-        self.add_collection(DataCenterCollection())
-
-    def setup_filters(self):
-        super(RhevmApp, self).setup_filters()
-        self.add_input_filter(RequireAuthentication())
-        self.add_input_filter(XmlInput(), action='create')
-        self.add_input_filter(XmlInput(), action='update')
-        self.add_output_filter(XmlOutput(), action='show')
-        self.add_output_filter(XmlOutput(), action='list')
-
     def load_modules(self):
         super(RhevmApp, self).load_modules()
+        self.load_module('rhevm.default')
         self.load_module('rhevm.datacenter')
+        self.load_module('rhevm.vm')
+        self.load_module('rhevm.nic')
+        self.load_module('rhevm.disk')
 
     def respond(self):
         powershell = PowerShell()
