@@ -6,9 +6,11 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from rest import Collection, Validator, InputValidator, OutputValidator
+from argproc import ArgumentProcessor
+from rest import Collection
 from rhevm.api import powershell
 from rhevm.util import *
+from rhevm.filter import StructuredInput, StructuredOutput
 
 
 class VmCollection(Collection):
@@ -29,18 +31,17 @@ class VmCollection(Collection):
         return result
 
     def create(self, input):
-        skel = { 'Name': input.pop('Name'),
+        args = { 'Name': input.pop('Name'),
                  'TemplateObject': input.pop('TemplateId'),
                  'HostClusterId': input.pop('HostClusterId') }
-        cmdline = create_cmdline(**skel)
+        cmdline = create_cmdline(**args)
         result = powershell.execute('$vm = Add-VM %s' % cmdline)
         updates = []
         for key in input:
             updates.append('$vm.%s = "%s"' % (key, input[key]))
         updates = '; '.join(updates)
         powershell.execute('%s; Update-Vm -VmObject $vm' % updates)
-        result = powershell.execute('$name = $vm.Name; Write-Host "Name: $name"')
-        return result[0]['Name']
+        return args['Name']
 
     def update(self, id, input):
         filter = create_filter(name=id)
@@ -64,46 +65,53 @@ class VmCollection(Collection):
 
 
 def setup(app):
-    val = Validator(globals())
-    val.rule('id <= VmId')
-    val.rule('name <=> Name *')
-    val.rule('description <=> Description')
-    val.rule('cluster_id(cluster) <=> cluster_name(HostClusterId) *')
-    val.rule('template_object(template) <=> template_name(TemplateId)')
-    #val.rule('template_object(template) <=> template_name(TemplateId) * [create]')
-    #val.rule('template <= template_name(TemplateId) * [update]')
-    val.rule('session <= Session')
-    val.rule('memory <=> MemorySize')
-    val.rule('domain <=> Domain')
-    val.rule('os <=> OperatingSystem')
-    val.rule('creationdate <= CreationDate')
-    val.rule('monitors <=> NumOfMonitors')
-    val.rule('cpus <=> NumOfCpus')
-    val.rule('host_id(defaulthost) <=> host_name(DefaultHost)')
-    val.rule('nice <=> NiceLevel')
-    val.rule('failback <=> FailBack')
-    val.rule('bootdevice <=> DefaultBootDevice')
-    val.rule('type <=> VmType')
-    val.rule('hypervisor <=> HypervisorType')
-    val.rule('mode <=> OperationMode')
-    val.rule('status <= Status')
-    val.rule('ip <= Ip')
-    val.rule('hostname <= HostName')
-    val.rule('uptime <= UpTime')
-    val.rule('logintime <= LoginTime')
-    val.rule('username <= CurrentUserName')
-    val.rule('lastlogout <= LastLogoutTime')
-    val.rule('elapsedtime <= ElapsedTime')
-    val.rule('host <= RunningOnHost')
-    val.rule('migratehost <= MigratingToHost')
-    val.rule('applications <= ApplicationList')
-    val.rule('displayport <= DisplayPort')
-    val.rule('ha <=> HighlyAvailable')
-    # XXX: syntax error in Select-VmPool. Bug?
-    #val.rule('pool_id(pool) <=> pool_name(poolid)')
-    val.rule('pool <=> PoolId')
-    app.add_input_filter(InputValidator(val), collection='vms',
+    proc = ArgumentProcessor()
+    proc.rules("""
+        # Properties required for creation
+        $name * <=> $Name
+        cluster_id($cluster) * <=> cluster_name($HostClusterId)
+        template_object($template) * => template_name($TemplateId) [create]
+        template_id($template) <=> template_name($TemplateId) [update]
+
+        # Read-write properties
+        $description <=> $Description
+        $memory:int <=> int($MemorySize)
+        $domain <=> $Domain
+        $os <=> $OperatingSystem
+        $monitors:int <=> int($NumOfMonitors)
+        $cpus:int <=> int($NumOfCpus)
+        host_id($defaulthost) <=> host_name($DefaultHost)
+        $nicelevel:int <=> $NiceLevel
+        int(bool($failback)) <=> bool($FailBack)
+        $bootdevice:('harddisk', 'network') <=> lower($DefaultBootDevice)
+        $type:('server', 'desktop') <=> lower($VmType)
+        bool(int($ha)) <=> bool($HighlyAvailable)  # Requires to be set as int
+
+        # Mask these out as i think they are going away
+        #$hypervisor:'kvm' <=> lower($HypervisorType)
+        #$mode:'fullvirtualized' <=> lower($OperationMode)
+
+        # Readonly properties
+        $id <= $VmId
+        $creationdate <= $CreationDate
+        $status <= $Status
+        $session <= $Session
+        $ip <= $Ip
+        $hostname <= $HostName
+        $uptime <= $UpTime
+        $logintime <= $LoginTime
+        $username <= $CurrentUserName
+        $lastlogout <= $LastLogoutTime
+        $elapsedtime <= $ElapsedTime
+        $host <= $RunningOnHost
+        $migratehost <= $MigratingToHost
+        #$applications <= $ApplicationList  # xxx: need to check format
+        $displayport <= $DisplayPort
+        # XXX: syntax error in Select-VmPool. Bug?
+        #pool_id($pool) <=> pool_name($PoolId)
+        """)
+    app.add_input_filter(StructuredInput(proc), collection='vms',
                          action=['create', 'update'])
-    app.add_output_filter(OutputValidator(val), collection='vms',
-                          action=['show', 'list'], priority=40)
+    app.add_output_filter(StructuredOutput(proc), collection='vms',
+                          action=['show', 'list'])
     app.add_collection(VmCollection())

@@ -30,14 +30,14 @@ class RhevmTest(object):
     @classmethod
     def setUpClass(cls):
         # Make sure we get some logs on standard output.
-        level = logging.DEBUG
-        logger = logging.getLogger('rhevm')
-        handler = logging.StreamHandler(sys.stdout)
-        format = '%(levelname)s [%(name)s] %(message)s'
-        formatter = logging.Formatter(format)
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(level)
+        #level = logging.DEBUG
+        #logger = logging.getLogger('rhevm')
+        #handler = logging.StreamHandler(sys.stdout)
+        #format = '%(levelname)s [%(name)s] %(message)s'
+        #formatter = logging.Formatter(format)
+        #handler.setFormatter(formatter)
+        #logger.addHandler(handler)
+        #logger.setLevel(level)
         # Load the test config
         myfile = os.path.abspath(__file__)
         dir, tail = os.path.split(myfile)
@@ -62,8 +62,8 @@ class RhevmTest(object):
     def setUp(self):
         username = self.config.get('test', 'username')
         password = self.config.get('test', 'password')
-        self.ps = PowerShell()
-        self.ps.execute('Login-User %s %s' % (username, password))
+        self.powershell = PowerShell()
+        self.powershell.execute('Login-User %s %s' % (username, password))
         self.server = make_server('localhost', 0, RhevmApp)
         self.thread = threading.Thread(target=self.server.serve_forever)
         self.thread.start()
@@ -75,6 +75,6 @@ class RhevmTest(object):
 
     def tearDown(self):
         self.client.close()
-        self.ps.close()
+        self.powershell.close()
         self.server.shutdown()
         self.thread.join()

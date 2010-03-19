@@ -53,6 +53,9 @@ class RequireAuthentication(InputFilter):
 class StructuredInput(InputFilter):
     """Convert XML or YAML input to a dictionary representation."""
 
+    def __init__(self, argproc=None):
+        self.argproc = argproc
+        
     def filter(self, input):
         ctype = request.header('Content-Type')
         if ctype == 'text/xml':
@@ -64,15 +67,24 @@ class StructuredInput(InputFilter):
             result = yaml.load(input)
         else:
             return input
+        if self.argproc:
+            tags = [request.match['action']]
+            result = self.argproc.process(result, tags=tags)
         return result
 
 
 class StructuredOutput(OutputFilter):
     """Convert a (list of) dictionary representation to XML or YAML."""
 
+    def __init__(self, argproc=None):
+        self.argproc = argproc
+
     def filter(self, output):
         if not isinstance(output, dict) and not isinstance(output, list):
             return output
+        if self.argproc:
+            tags = [request.match['action']]
+            output = self.argproc.reverse(output, tags=tags)
         ctype = request.header('Content-Type')
         if ctype == 'text/xml':
             if isinstance(output, list):

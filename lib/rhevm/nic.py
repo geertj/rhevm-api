@@ -6,7 +6,7 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from rest import Validator, Collection, InputValidator, OutputValidator
+from rest import Collection, InputValidator, OutputValidator
 from rhevm.api import powershell
 
 

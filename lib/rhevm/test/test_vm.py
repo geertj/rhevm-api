@@ -45,7 +45,7 @@ class TestVm(RhevmTest):
         assert response.status == http.OK
         assert response.getheader('Content-Type') == 'text/yaml'
         data = yaml.load(response.read())
-        assert data['memory'] == '512'
+        assert data['memory'] == 512
         assert data['description'] == 'My new virtual machine'
         client.request('DELETE', url.path, headers=headers)
         response = client.getresponse()

@@ -90,3 +90,6 @@ def pool_name(id):
     if len(result) != 1:
         raise KeyError, 'Pool not found.'
     return result[0]['Name']
+
+def lower(s):
+    return s.lower()

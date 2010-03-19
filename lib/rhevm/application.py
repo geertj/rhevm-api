@@ -21,8 +21,8 @@ class RhevmApp(Application):
         self.load_module('rhevm.default')
         self.load_module('rhevm.datacenter')
         self.load_module('rhevm.vm')
-        self.load_module('rhevm.nic')
-        self.load_module('rhevm.disk')
+        #self.load_module('rhevm.nic')
+        #self.load_module('rhevm.disk')
 
     def respond(self):
         powershell = PowerShell()

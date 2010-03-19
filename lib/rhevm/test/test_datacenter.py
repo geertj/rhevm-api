@@ -10,8 +10,7 @@ import random
 import httplib as http
 
 from urlparse import urlparse
-from xml.etree import ElementTree as etree
-from xml.etree.ElementTree import Element, SubElement
+import yaml
 
 from rhevm.test.base import RhevmTest
 
@@ -19,56 +18,52 @@ from rhevm.test.base import RhevmTest
 class TestDataCenter(RhevmTest): 
 
     def test_show(self):
-        ref = self.ps.execute('Select-DataCenter')
-        id = ref[0]['DataCenterId']
+        powershell = self.powershell
+        ref = powershell.execute('Select-DataCenter')
+        id = ref[0]['Name']
         self.client.request('GET', '/api/datacenters/%s' % id,
-                headers=self.headers)
+                            headers=self.headers)
         response = self.client.getresponse()
         assert response.status == http.OK
-        assert response.getheader('Content-Type', 'text/xml')
-        xml = etree.fromstring(response.read())
-        assert xml.tag == 'datacenter'
+        assert response.getheader('Content-Type', 'text/yaml')
 
     def test_list(self):
-        ref = self.ps.execute('Select-DataCenter')
+        powershell = self.powershell
+        powershell.execute('Select-DataCenter')
         self.client.request('GET', '/api/datacenters', headers=self.headers)
         response = self.client.getresponse()
         assert response.status == http.OK
-        assert response.getheader('Content-Type', 'text/xml')
-        xml = etree.fromstring(response.read())
-        assert xml.tag == 'datacenters'
-        assert len(xml) == len(ref)
+        assert response.getheader('Content-Type', 'text/yaml')
+        parsed = yaml.load(response.read())
+        assert len(parsed) == len(ref)
 
     def test_create_update_delete(self):
         client = self.client
         headers = self.headers
-        headers['Content-Type'] = 'text/xml'
-        root = Element('datacenter')
-        elem = SubElement(root, 'type')
-        elem.text = 'NFS'
-        elem = SubElement(root, 'name')
-        elem.text = 'NewName-%s' % random.randint(0, 1000000000)
-        body = etree.tostring(root)
+        headers['Content-Type'] = 'text/yaml'
+        data = {}
+        data['type'] = 'NFS'
+        data['name'] = 'NewName-%s' % random.randint(0, 1000000000)
+        body = yaml.dump(data)
         client.request('POST', '/api/datacenters', body=body, headers=headers)
         response = client.getresponse()
         assert response.status == http.CREATED
         location = response.getheader('Location')
         assert location is not None
         url = urlparse(location)
-        root[0].text = 'FCP'
-        elem = SubElement(root, 'description')
-        elem.text = 'New Description'
-        body = etree.tostring(root)
+        data['type'] = 'FCP'
+        data['description'] = 'New Description'
+        body = yaml.dump(data)
         client.request('PUT', url.path, body=body, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
         client.request('GET', url.path, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
-        assert response.getheader('Content-Type') == 'text/xml'
-        xml = etree.fromstring(response.read())
-        assert xml.find('./type').text == 'FCP'
-        assert xml.find('./description').text == 'New Description'
+        assert response.getheader('Content-Type') == 'text/yaml'
+        parsed = yaml.load(response.read())
+        assert parsed['type'] == 'FCP'
+        assert parsed['description'] == 'New Description'
         client.request('DELETE', url.path, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
