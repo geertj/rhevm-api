@@ -7,7 +7,7 @@
 # "AUTHORS" for a complete overview.
 
 from argproc import ArgumentProcessor
-from rest import mapper
+from rest.api import mapper
 from rhevm.api import powershell
 from rhevm.util import *
 from rhevm.appcfg import StructuredInput, StructuredOutput
@@ -56,7 +56,7 @@ class NicCollection(RhevmCollection):
         filter = create_filter(name=input['InterfaceName'])
         result = powershell.execute('$vm.GetNetworkAdapters() | %s' % filter)
         url = mapper.url_for(collection=self.name, action='show',
-                             id=result[0]['Name'])
+                             id=result[0]['Name'],vm=vm)
         return url, result[0]
 
     def delete(self, vm, id):

@@ -67,7 +67,7 @@ class DiskCollection(RhevmCollection):
         filter = create_filter(internaldrivemapping=diskid)
         result = powershell.execute('$vm.GetDiskImages() | %s' % filter)
         url = mapper.url_for(collection=self.name, action='show', 
-                             id=result[0]['InternalDriveMapping'])
+                             id=result[0]['InternalDriveMapping'], vm=vm)
         return url, result[0]
 
     def delete(self, vm, id):
