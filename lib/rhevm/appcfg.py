@@ -17,6 +17,7 @@ from argproc.error import Error as ArgProcError
 import rhevm
 from rhevm.api import powershell
 from rhevm.powershell import PowerShellError
+from rhevm.util import create_cmdline
 
 
 class RequireAuthentication(InputFilter):
@@ -41,9 +42,18 @@ class RequireAuthentication(InputFilter):
             username, password = auth.decode('base64').split(':')
         except (ValueError, binascii.Error):
             raise Error(http.BAD_REQUEST,
-                        reason='Illegal Authorization value')
+                        reason='Illegal Authorization header')
+        if '@' in username:
+            try:
+                username, domain = username.split('@')
+            except ValueError:
+                raise Error(http.BAD_REQUEST, reason='Illegal user name')
+        else:
+            domain = None
+        args = { 'UserName': username, 'Password': password, 'Domain': domain }
+        cmdline = create_cmdline(**args)
         try:
-            powershell.execute('Login-User %s %s' % (username, password))
+            powershell.execute('Login-User %s' % cmdline)
         except PowerShellError:
             headers = [('WWW-Authenticate', 'Basic realm=rhev')]
             raise Error(http.UNAUTHORIZED, headers,

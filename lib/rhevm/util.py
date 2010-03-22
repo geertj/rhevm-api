@@ -19,10 +19,12 @@ def create_cmdline(**kwargs):
     arguments = []
     for key in kwargs:
         value = kwargs[key]
-        # XXX: ugly hack:
-        if value is None:
+        if value in (None, False):
+            pass
+        elif value is True:
             arguments.append('-%s' % key)
         elif key.endswith('Object'):
+            # XXX: ugly hack:
             arguments.append('-%s %s' % (key, value))
         else:
             arguments.append('-%s "%s"' % (key, value))
