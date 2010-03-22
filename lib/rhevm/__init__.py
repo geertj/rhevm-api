@@ -6,9 +6,7 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-name = 'rhevm-api'
-version = '0.1'
-
 from rhevm.error import Error
 from rhevm.powershell import PowerShell
 from rhevm.application import RhevmApp
+from rhevm._version import *

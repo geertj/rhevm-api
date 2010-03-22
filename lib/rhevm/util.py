@@ -18,11 +18,14 @@ def create_filter(**kwargs):
 def create_cmdline(**kwargs):
     arguments = []
     for key in kwargs:
+        value = kwargs[key]
         # XXX: ugly hack:
-        if key.endswith('Object'):
-            arguments.append('-%s %s' % (key, kwargs[key]))
+        if value is None:
+            arguments.append('-%s' % key)
+        elif key.endswith('Object'):
+            arguments.append('-%s %s' % (key, value))
         else:
-            arguments.append('-%s "%s"' % (key, kwargs[key]))
+            arguments.append('-%s "%s"' % (key, value))
     cmdline = ' '.join(arguments)
     return cmdline
 
@@ -67,12 +70,14 @@ def host_id(name):
         raise KeyError, 'Host not found.'
     return result[0]['HostID']
 
-def host_name(id):
+def host_name(id, cluster):
     """Retur the host name for a given ID."""
-    filter = create_filter(hostid=id)
-    result =powershell.execute('Select-Host | %s' % filter)
+    if id in ('-1', None):
+        return
+    filter = create_filter(hostid=id, hostclusterid=cluster)
+    result = powershell.execute('Select-Host | %s' % filter)
     if len(result) != 1:
-        raise KeyError, 'Host not found.'
+        return
     return result[0]['Name']
 
 def pool_id(name):
@@ -93,3 +98,12 @@ def pool_name(id):
 
 def lower(s):
     return s.lower()
+
+def upper(s):
+    return s.upper()
+
+def boolean(s):
+    return s == 'True'
+
+def equals(s, ref):
+    return s == ref

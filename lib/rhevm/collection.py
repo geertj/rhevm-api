@@ -11,16 +11,4 @@ from rest.collection import Collection
 
 class RhevmCollection(Collection):
 
-    def _filter_from_dict(self, dict):
-        conditions = ['1']
-        for key in dict:
-            conditions.append('$_.%s -eq "%s"' % (key, dict[key]))
-        filter = '? { %s }' % ' -and '.join(conditions)
-        return filter
-
-    def _cmdline_from_dict(self, dict):
-        arguments = []
-        for key in dict:
-            arguments.append('-%s "%s"' % (key, dict[key]))
-        cmdline = ' '.join(arguments)
-        return cmdline
+    objectname = None

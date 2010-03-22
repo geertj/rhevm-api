@@ -7,13 +7,15 @@
 # "AUTHORS" for a complete overview.
 
 from argproc import ArgumentProcessor
-from rest import Collection
+from rest.api import mapper
 from rhevm.api import powershell
 from rhevm.util import *
-from rhevm.filter import StructuredInput, StructuredOutput
+from rhevm.appcfg import StructuredInput, StructuredOutput
+from rhevm.collection import RhevmCollection
 
 
-class VmCollection(Collection):
+class VmCollection(RhevmCollection):
+    """REST API for managing virtual machines."""
 
     name = 'vms'
     objectname = 'vm'
@@ -31,47 +33,50 @@ class VmCollection(Collection):
         return result
 
     def create(self, input):
-        args = { 'Name': input.pop('Name'),
-                 'TemplateObject': input.pop('TemplateId'),
-                 'HostClusterId': input.pop('HostClusterId') }
-        cmdline = create_cmdline(**args)
+        cargs = { 'Name': input.pop('Name'),
+                  'TemplateObject': input.pop('TemplateId'),
+                  'HostClusterId': input.pop('HostClusterId') }
+        cmdline = create_cmdline(**cargs)
         result = powershell.execute('$vm = Add-VM %s' % cmdline)
         updates = []
         for key in input:
             updates.append('$vm.%s = "%s"' % (key, input[key]))
         updates = '; '.join(updates)
-        powershell.execute('%s; Update-Vm -VmObject $vm' % updates)
-        return args['Name']
+        result = powershell.execute('%s; Update-Vm -VmObject $vm' % updates)
+        url = mapper.url_for(collection=self.name, action='show',
+                             id=result[0]['Name'])
+        return url, result[0]
 
     def update(self, id, input):
         filter = create_filter(name=id)
-        result = powershell.execute('Select-Vm | %s' % filter)
+        result = powershell.execute('Select-Vm | %s'
+                                    ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
             raise KeyError
-        powershell.execute('$vm = Select-Vm | %s' % filter)
         updates = []
         for key in input:
             updates.append('$vm.%s = "%s"' % (key, input[key]))
         updates = '; '.join(updates)
-        powershell.execute('%s; Update-Vm -VmObject $vm' % updates)
+        result = powershell.execute('%s; Update-Vm -VmObject $vm' % updates)
+        return result[0]
 
     def delete(self, id):
         filter = create_filter(name=id)
-        result = powershell.execute('Select-Vm | %s' % filter)
+        result = powershell.execute('Select-Vm | %s'
+                                    ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
             raise KeyError
-        powershell.execute('$vm = Select-Vm | %s' % filter)
         powershell.execute('Remove-Vm -VmId $vm.VmId')
 
 
-def setup(app):
+def setup_module(app):
     proc = ArgumentProcessor()
     proc.rules("""
         # Properties required for creation
         $name * <=> $Name
         cluster_id($cluster) * <=> cluster_name($HostClusterId)
         template_object($template) * => template_name($TemplateId) [create]
-        template_id($template) <=> template_name($TemplateId) [update]
+        template_id($template) <= template_name($TemplateId)
 
         # Read-write properties
         $description <=> $Description
@@ -80,12 +85,12 @@ def setup(app):
         $os <=> $OperatingSystem
         $monitors:int <=> int($NumOfMonitors)
         $cpus:int <=> int($NumOfCpus)
-        host_id($defaulthost) <=> host_name($DefaultHost)
-        $nicelevel:int <=> $NiceLevel
-        int(bool($failback)) <=> bool($FailBack)
-        $bootdevice:('harddisk', 'network') <=> lower($DefaultBootDevice)
+        host_id($defaulthost) <=> host_name($DefaultHost, $HostClusterId)
+        $nice:int <=> int($NiceLevel)
+        int($failback) <=> boolean($FailBack)
+        $boot:('harddisk', 'network') <=> lower($DefaultBootDevice)
         $type:('server', 'desktop') <=> lower($VmType)
-        bool(int($ha)) <=> bool($HighlyAvailable)  # Requires to be set as int
+        int($ha) <=> boolean($HighlyAvailable)  # Requires to be set as int
 
         # Mask these out as i think they are going away
         #$hypervisor:'kvm' <=> lower($HypervisorType)
@@ -93,25 +98,24 @@ def setup(app):
 
         # Readonly properties
         $id <= $VmId
-        $creationdate <= $CreationDate
-        $status <= $Status
+        $created <= $CreationDate
+        $status <= lower($Status)
         $session <= $Session
         $ip <= $Ip
         $hostname <= $HostName
         $uptime <= $UpTime
-        $logintime <= $LoginTime
+        $login <= $LoginTime
         $username <= $CurrentUserName
-        $lastlogout <= $LastLogoutTime
-        $elapsedtime <= $ElapsedTime
-        $host <= $RunningOnHost
-        $migratehost <= $MigratingToHost
+        $logout <= $LastLogoutTime
+        $time <= int($ElapsedTime)
+        $host <= host_name($RunningOnHost, $HostClusterId)
+        $migrating <= host_name($MigratingToHost, $HostClusterId)
         #$applications <= $ApplicationList  # xxx: need to check format
-        $displayport <= $DisplayPort
+        $port <= int($DisplayPort)
         # XXX: syntax error in Select-VmPool. Bug?
-        #pool_id($pool) <=> pool_name($PoolId)
+        #pool_id($pool) <= pool_name($PoolId)
+        $pool <= int($PoolId)
         """)
-    app.add_input_filter(StructuredInput(proc), collection='vms',
-                         action=['create', 'update'])
-    app.add_output_filter(StructuredOutput(proc), collection='vms',
-                          action=['show', 'list'])
+    app.add_input_filter(StructuredInput(proc), collection='vms')
+    app.add_output_filter(StructuredOutput(proc), collection='vms')
     app.add_collection(VmCollection())

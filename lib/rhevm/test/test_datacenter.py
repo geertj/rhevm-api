@@ -7,43 +7,21 @@
 # "AUTHORS" for a complete overview.
 
 import random
-import httplib as http
-
 from urlparse import urlparse
 import yaml
 
+from rest import http
 from rhevm.test.base import RhevmTest
 
 
 class TestDataCenter(RhevmTest): 
 
-    def test_show(self):
-        powershell = self.powershell
-        ref = powershell.execute('Select-DataCenter')
-        id = ref[0]['Name']
-        self.client.request('GET', '/api/datacenters/%s' % id,
-                            headers=self.headers)
-        response = self.client.getresponse()
-        assert response.status == http.OK
-        assert response.getheader('Content-Type', 'text/yaml')
-
-    def test_list(self):
-        powershell = self.powershell
-        powershell.execute('Select-DataCenter')
-        self.client.request('GET', '/api/datacenters', headers=self.headers)
-        response = self.client.getresponse()
-        assert response.status == http.OK
-        assert response.getheader('Content-Type', 'text/yaml')
-        parsed = yaml.load(response.read())
-        assert len(parsed) == len(ref)
-
-    def test_create_update_delete(self):
+    def test_crud(self):
         client = self.client
         headers = self.headers
         headers['Content-Type'] = 'text/yaml'
-        data = {}
-        data['type'] = 'NFS'
-        data['name'] = 'NewName-%s' % random.randint(0, 1000000000)
+        data = { 'name': 'test-%s' % random.randint(0, 1000000000),
+                 'type': 'NFS' }
         body = yaml.dump(data)
         client.request('POST', '/api/datacenters', body=body, headers=headers)
         response = client.getresponse()
@@ -51,6 +29,16 @@ class TestDataCenter(RhevmTest):
         location = response.getheader('Location')
         assert location is not None
         url = urlparse(location)
+        client.request('GET', '/api/datacenters', headers=headers)
+        response = client.getresponse()
+        assert response.status == http.OK
+        assert response.getheader('Content-Type') == 'text/yaml'
+        result = yaml.load(response.read())
+        for entry in result:
+            if entry['name'] == data['name']:
+                break
+        else:
+            raise AssertionError
         data['type'] = 'FCP'
         data['description'] = 'New Description'
         body = yaml.dump(data)

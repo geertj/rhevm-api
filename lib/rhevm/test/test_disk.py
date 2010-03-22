@@ -14,49 +14,51 @@ from rest import http
 from rhevm.test.base import RhevmTest
 
 
-class TestVm(RhevmTest): 
+class TestDisk(RhevmTest): 
 
     def test_crud(self):
         client = self.client
         headers = self.headers
+        vm = { 'name': 'test-%s' % random.randint(0, 1000000),
+               'template': self.template,
+               'cluster': self.cluster }
+        body = yaml.dump(vm)
         headers['Content-Type'] = 'text/yaml'
-        data = { 'name': 'test-%s' % random.randint(0, 1000000),
-                 'template': 'Blank',
-                 'cluster': 'Main' }
-        body = yaml.dump(data)
         client.request('POST', '/api/vms', body=body, headers=headers)
         response = client.getresponse()
         assert response.status == http.CREATED
+        assert response.getheader('Location')
+        vmpath = urlparse(response.getheader('Location')).path
+        disk = { 'size': 8 }
+        body = yaml.dump(disk)
+        client.request('POST', '%s/disks' % vmpath, body=body,
+                       headers=headers)
+        response = client.getresponse()
+        assert response.status == http.CREATED
+        assert response.getheader('Content-Type') == 'text/yaml'
+        assert response.getheader('Location')
         location = response.getheader('Location')
-        assert location is not None
-        url = urlparse(location)
-        client.request('GET', '/api/vms', headers=headers)
+        diskpath = urlparse(response.getheader('Location')).path
+        del headers['Content-Type']
+        client.request('GET', '%s/disks' % vmpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
         assert response.getheader('Content-Type') == 'text/yaml'
         result = yaml.load(response.read())
-        for entry in result:
-            if entry['name'] == data['name']:
-                break
-        else:
-            raise AssertionError
-        del data['template']
-        data['memory'] = 512
-        data['description'] = 'My new virtual machine'
-        body = yaml.dump(data)
-        client.request('PUT', url.path, body=body, headers=headers)
-        response = client.getresponse()
-        assert response.status == http.OK
-        client.request('GET', url.path, headers=headers)
+        assert len(result) == 1
+        assert result[0]['size'] == 8
+        client.request('GET', diskpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
         assert response.getheader('Content-Type') == 'text/yaml'
         data = yaml.load(response.read())
-        assert data['memory'] == 512
-        assert data['description'] == 'My new virtual machine'
-        client.request('DELETE', url.path, headers=headers)
+        assert data['size'] == 8
+        client.request('DELETE', diskpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
-        client.request('DELETE', url.path, headers=headers)
+        client.request('DELETE', diskpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.NOT_FOUND
+        client.request('DELETE', vmpath, headers=headers)
+        response = client.getresponse()
+        assert response.status == http.OK

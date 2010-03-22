@@ -8,8 +8,6 @@
 
 from rest import Application
 import rhevm.api
-from rhevm.filter import (RequireAuthentication, StructuredInput,
-                          StructuredOutput)
 from rhevm.powershell import PowerShell
 
 
@@ -18,11 +16,11 @@ class RhevmApp(Application):
 
     def load_modules(self):
         super(RhevmApp, self).load_modules()
-        self.load_module('rhevm.default')
-        self.load_module('rhevm.datacenter')
-        self.load_module('rhevm.vm')
-        #self.load_module('rhevm.nic')
-        #self.load_module('rhevm.disk')
+        self.load_module('rhevm.appcfg')
+        self.load_module('rhevm.module.datacenter')
+        self.load_module('rhevm.module.vm')
+        self.load_module('rhevm.module.nic')
+        self.load_module('rhevm.module.disk')
 
     def respond(self):
         powershell = PowerShell()

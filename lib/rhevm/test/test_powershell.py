@@ -6,31 +6,48 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-import threading
 from nose.tools import assert_raises
 
-from rhevm.powershell import PowerShell, Error
+from rhevm.powershell import PowerShell, PowerShellError
 from rhevm.test.base import RhevmTest
 
 
 class TestPowerShell(RhevmTest):
 
-    def setUp(self):
-        username = self.config.get('test', 'username')
-        password = self.config.get('test', 'password')
-        self.ps = PowerShell()
-        self.ps.execute('Login-User %s %s' % (username, password))
+    def test_short_form(self):
+        result = self.powershell.execute('Get-Version')
+        assert len(result) == 1
+        assert 'Major' in result[0]
+        assert 'Minor' in result[0]
+        assert 'Build' in result[0]
+        assert 'Revision' in result[0]
 
-    def tearDown(self):
-        self.ps.close()
+    def test_long_form(self):
+        result = self.powershell.execute('Select-Event | '
+                                         'Select-Object -First 1')
+        assert len(result) == 1
+        assert 'Id' in result[0]
+        assert 'LogTime' in result[0]
+        assert 'LogType' in result[0]
+        assert 'Message' in result[0]
+        assert 'Severity' in result[0]
 
-    def test_basic(self):
-        objects = self.ps.execute('Select-Event')
+    def test_multiple_entries(self):
+        result = self.powershell.execute('Select-Event | '
+                                         'Select-Object -First 10')
+        print 'RESULT', len(result)
+        assert len(result) == 10
+    
+    def test_zero_entries(self):
+        result = self.powershell.execute('Select-Event | '
+                                         'Select-Object -First 0')
+        assert len(result) == 0
 
     def test_error(self):
         try:
-            self.ps.execute('Add-DataCenter -name test -datacentertype test')
-        except Error, e:
+            # Generate an exception by passing an unknown argument
+            self.powershell.execute('Add-DataCenter -foo bar')
+        except PowerShellError, e:
             assert len(e.message) > 0
             assert len(e.category) > 0
             assert len(e.id) > 0

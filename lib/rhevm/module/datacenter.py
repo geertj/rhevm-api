@@ -7,14 +7,15 @@
 # "AUTHORS" for a complete overview.
 
 from argproc import ArgumentProcessor
-from rest import Collection
-
+from rest.api import mapper
 from rhevm.api import powershell
-from rhevm.filter import StructuredInput, StructuredOutput
 from rhevm.util import *
+from rhevm.appcfg import StructuredInput, StructuredOutput
+from rhevm.collection import RhevmCollection
 
 
-class DataCenterCollection(Collection):
+class DataCenterCollection(RhevmCollection):
+    """REST API for managing datacenters."""
 
     name = 'datacenters'
     objectname = 'datacenter'
@@ -32,50 +33,52 @@ class DataCenterCollection(Collection):
         return result
 
     def create(self, input):
-        args = { 'Name': input.pop('Name'),
-                 'DataCenterType': input.pop('DataCenterType') }
-        cmdline = create_cmdline(**args)
+        cargs = { 'Name': input.pop('Name'),
+                  'DataCenterType': input.pop('Type') }
+        cmdline = create_cmdline(**cargs)
         result = powershell.execute('$dc = Add-DataCenter %s' % cmdline)
         updates = []
         for key in input:
             updates.append('$dc.%s = "%s"' % (key, input[key]))
         updates = '; '.join(updates)
-        powershell.execute('%s; Update-DataCenter -DataCenterObject $dc' % updates)
-        return args['Name']
+        result = powershell.execute('%s; Update-DataCenter'
+                                    ' -DataCenterObject $dc' % updates)
+        url = mapper.url_for(collection=self.name, action='show',
+                             id=result[0]['Name'])
+        return url, result[0]
 
     def update(self, id, input):
         filter = create_filter(name=id)
-        result = powershell.execute('Select-DataCenter | %s' % filter)
+        result = powershell.execute('Select-DataCenter | %s'
+                                    ' | Tee-Object -Variable dc' % filter)
         if len(result) != 1:
             raise KeyError
-        powershell.execute('$dc = Select-DataCenter | %s' % filter)
         updates = []
         for key in input:
             updates.append('$dc.%s = "%s"' % (key, input[key]))
         updates = '; '.join(updates)
-        powershell.execute('%s; Update-DataCenter -DataCenterObject $dc' % updates)
+        result = powershell.execute('%s; Update-DataCenter'
+                                    ' -DataCenterObject $dc' % updates)
+        return result[0]
 
     def delete(self, id):
         filter = create_filter(name=id)
-        result = powershell.execute('Select-DataCenter | %s' % filter)
+        result = powershell.execute('Select-DataCenter | %s'
+                                    ' | Tee-Object -Variable dc' % filter)
         if len(result) != 1:
             raise KeyError
-        powershell.execute('$dc = Select-DataCenter | %s' % filter)
         powershell.execute('Remove-DataCenter -DataCenterId $dc.DataCenterId')
 
 
-def setup(app):
+def setup_module(app):
     proc = ArgumentProcessor()
     proc.rules("""
         $id <= $DataCenterId
         $name * <=> $Name
         $description <=> $Description
-        $type * => $DataCenterType [create]
-        $type * <=> $Type [update]
+        $type * <=> $Type
         $status <= $Status
     """)
-    app.add_input_filter(StructuredInput(proc), collection='datacenters',
-                         action=['create', 'update'])
-    app.add_output_filter(StructuredOutput(proc), collection='datacenters',
-                          action=['show', 'list'])
+    app.add_input_filter(StructuredInput(proc), collection='datacenters')
+    app.add_output_filter(StructuredOutput(proc), collection='datacenters')
     app.add_collection(DataCenterCollection())

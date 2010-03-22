@@ -31,20 +31,50 @@ class ParseError(Error):
 
 
 class PowerShell(object):
-    """Execute Windows PowerShell commands."""
+    """Execute Windows PowerShell commands.""" 
 
     def __init__(self):
         self.logger = logging.getLogger('rhevm.powershell')
         self.child = winspawn('powershell.exe -Command -')
 
+    _re_separator = re.compile('-+')
+
     def _parse_objects(self, output):
         """INTERNAL: Parse a list of PowerShell objects."""
         result = []
-        state = 'NEW_OBJECT'
+        state = 'DETECT_FORM'
         lines = output.splitlines()
         for line in lines:
-            line = line.strip()
-            if state == 'NEW_OBJECT':
+            if state == 'DETECT_FORM':
+                if not line:
+                    continue
+                p1 = line.find(':')
+                if p1 == -1:
+                    keys = line.split()
+                    result.append({})
+                    state = 'SKIP_HYPHENS_SHORT_FORM'
+                else:
+                    key = line[:p1].strip()
+                    value = line[p1+1:].strip()
+                    result.append({})
+                    result[-1][key] = value or None
+                    state = 'READ_OBJECT_LONG_FORM'
+            elif state == 'SKIP_HYPHENS_SHORT_FORM':
+                separators = line.strip().split()
+                if len(separators) != len(keys):
+                    raise ParseError
+                for sep in separators:
+                    if not self._re_separator.match(sep):
+                        raise ParseError
+                state = 'READ_OBJECT_SHORT_FORM'
+            elif state == 'READ_OBJECT_SHORT_FORM':
+                values = line.split()
+                if len(values) != len(keys):
+                    raise ParseError
+                for i in range(len(keys)):
+                    result[-1][keys[i]] = values[i]
+                state = 'SKIP_TRAILING_NEWLINES'
+            elif state == 'NEW_OBJECT_LONG_FORM':
                 if not line:
                     continue
                 p1 = line.find(':')
@@ -52,18 +82,22 @@ class PowerShell(object):
                     raise ParseError
                 key = line[:p1].strip()
                 value = line[p1+1:].strip()
-                result.append({key: value})
-                state = 'READ_OBJECT'
-            elif state == 'READ_OBJECT':
+                result.append({})
+                result[-1][key] = value or None
+                state = 'READ_OBJECT_LONG_FORM'
+            elif state == 'READ_OBJECT_LONG_FORM':
                 if not line:
-                    state = 'NEW_OBJECT'
+                    state = 'NEW_OBJECT_LONG_FORM'
                     continue
                 p1 = line.find(':')
                 if p1 == -1:
                     raise ParseError
                 key = line[:p1].strip()
                 value = line[p1+1:].strip()
-                result[-1][key] = value
+                result[-1][key] = value or None
+            elif state == 'SKIP_TRAILING_NEWLINES':
+                if line and not line.isspace():
+                    raise ParseError
         return result
 
     _re_error_end_header = re.compile('At line:\d+')
@@ -144,22 +178,26 @@ class PowerShell(object):
     def execute(self, command):
         """Execute a command. Return a string, a list of objects, or
         raises an exception."""
-        command = '%s; Write-Host "END-OF-OUTPUT-MARKER $?"' % command
-        self.logger.debug('Executing powershell: %s' % command)
-        self.child.sendline(command)
+        script = 'Write-Host "START-OF-OUTPUT-MARKER";'
+        script += '%s;' % command 
+        script += 'Write-Host "END-OF-OUTPUT-MARKER $?";'
+        self.logger.debug('Executing powershell: %s' % script)
+        self.child.sendline(script)
         try:
-            self.child.expect('END-OF-OUTPUT-MARKER (True|False)')
+            # Write-Host does not seem to be generating a \r ...
+            self.child.expect('START-OF-OUTPUT-MARKER\r?\n')
+            self.child.expect('END-OF-OUTPUT-MARKER (True|False)\r?\n')
         except TIMEOUT:
-            raise ParseError, 'Could not parse PowerShell output.'
-        status = self.child.match.group(1) == 'True' and True or False
+            self.logger.debug('PExpect state: %s' % str(self.child))
+            raise ParseError, 'TIMEOUT in PowerShell command.'
+        status = bool(self.child.match.group(1) == 'True')
+        output = self.child.before
         if status:
-            output = self.child.before
-            p1 = output.find('\n')
-            if p1 != -1 and output[:p1+1].isspace():
-                result = self._parse_objects(self.child.before)
+            if output.startswith('\r\n'):
+                result = self._parse_objects(output)
             else:
                 result = output
         else:
-            error = self._parse_error(self.child.before)
+            error = self._parse_error(output)
             raise error
         return result

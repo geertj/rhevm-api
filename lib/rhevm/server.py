@@ -9,7 +9,6 @@
 import re
 import sys
 import logging
-from setuptools import Command
 from optparse import OptionParser
 
 from rest import make_server
@@ -31,32 +30,6 @@ def _setup_logging(debug):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(level)
-
-
-class serve(Command):
-    """Distutils command that starts up the API based on the built-in
-    wsgiref web server."""
-
-    user_options = [
-        ('listen=', 'l', 'listen on interface:port'),
-        ('debug', 'd', 'show debugging information')
-    ]
-
-    def initialize_options(self):
-        self.listen = 'localhost:8080'
-        self.debug = False
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        host, port = self.listen.split(':')
-        port = int(port)
-        _setup_logging(debug)
-        server = make_server(host, port, RhevmApp)
-        print 'Listening on %s:%s' (address, port)
-        print 'Press CTRL-C to quit'
-        server.serve_forever()
 
 
 def main():

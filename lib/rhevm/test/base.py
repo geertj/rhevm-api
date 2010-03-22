@@ -29,16 +29,6 @@ class RhevmTest(object):
 
     @classmethod
     def setUpClass(cls):
-        # Make sure we get some logs on standard output.
-        #level = logging.DEBUG
-        #logger = logging.getLogger('rhevm')
-        #handler = logging.StreamHandler(sys.stdout)
-        #format = '%(levelname)s [%(name)s] %(message)s'
-        #formatter = logging.Formatter(format)
-        #handler.setFormatter(formatter)
-        #logger.addHandler(handler)
-        #logger.setLevel(level)
-        # Load the test config
         myfile = os.path.abspath(__file__)
         dir, tail = os.path.split(myfile)
         while tail:
@@ -58,6 +48,9 @@ class RhevmTest(object):
             raise TestError, 'You need to specify both username and ' \
                         'password in the test config.'
         cls.config = config
+        cls.datacenter = config.get('test', 'datacenter')
+        cls.cluster = config.get('test', 'cluster')
+        cls.template = config.get('test', 'template')
 
     def setUp(self):
         username = self.config.get('test', 'username')
@@ -71,7 +64,9 @@ class RhevmTest(object):
         self.client = HTTPConnection(*self.server.address)
         auth = '%s:%s' % (username, password)
         auth = 'Basic %s' % auth.encode('base64').rstrip()
-        self.headers = { 'Authorization': auth }
+        self.headers = { 'Authorization': auth,
+                         'Accept': 'text/yaml',
+                         'Host': 'localhost:%s' % self.client.port }
 
     def tearDown(self):
         self.client.close()
