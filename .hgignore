@@ -3,7 +3,6 @@ syntax: glob
 *.so
 build/
 dist/
-dep/
 *.egg-info
 .*.swp
 test.conf
