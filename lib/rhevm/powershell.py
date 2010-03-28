@@ -10,7 +10,7 @@ import re
 import os.path
 import logging
 
-from winpexpect import winspawn, TIMEOUT
+from winpexpect import winspawn, TIMEOUT, WindowsError
 from rhevm.error import Error
 
 
