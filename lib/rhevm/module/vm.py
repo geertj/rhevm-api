@@ -88,7 +88,7 @@ def setup_module(app):
         host_id($defaulthost) <=> host_name($DefaultHost, $HostClusterId)
         $nice:int <=> int($NiceLevel)
         int($failback) <=> boolean($FailBack)
-        $boot:('harddisk', 'network') <=> lower($DefaultBootDevice)
+        $boot:('harddisk', 'network', 'cdrom') <=> lower($DefaultBootDevice)
         $type:('server', 'desktop') <=> lower($VmType)
         int($ha) <=> boolean($HighlyAvailable)  # Requires to be set as int
 
