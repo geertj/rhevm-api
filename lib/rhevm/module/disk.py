@@ -57,7 +57,7 @@ class DiskCollection(RhevmCollection):
         cmdline = create_cmdline(**create)
         updates = []
         for key in input:
-            updates.append('$vm.%s = "%s"' % (key, input[key]))
+            updates.append('$disk.%s = "%s"' % (key, input[key]))
         updates = '; '.join(updates)
         powershell.execute('$disk = New-Disk %s; %s' % (cmdline, updates))
         result = powershell.execute('Add-Disk -DiskObject $disk -VmId $vm.VmId')
