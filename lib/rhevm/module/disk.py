@@ -101,7 +101,7 @@ def setup_module(app):
         $size <= int($SizeInGB)
 
         # Settable properties
-        $type:('system', 'data', 'shared', 'swap', 'temp')
+        $usage:('system', 'data', 'shared', 'swap', 'temp')
                 <=> lower(DiskType)
         $interface:('ide', 'virtio') <=> lower($DiskInterface)
         $allocation:('preallocated', 'sparse') <=> lower($VolumeType)
