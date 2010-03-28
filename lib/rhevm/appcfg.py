@@ -6,6 +6,7 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
+import sys
 import yaml
 import binascii
 
@@ -16,7 +17,7 @@ from rest.api import request, response, collection
 from argproc.error import Error as ArgProcError
 import rhevm
 from rhevm.api import powershell
-from rhevm.powershell import PowerShellError
+from rhevm.powershell import PowerShellError, WindowsError
 from rhevm.util import create_cmdline
 
 
@@ -50,12 +51,27 @@ class RequireAuthentication(InputFilter):
                 raise Error(http.BAD_REQUEST, reason='Illegal user name')
         else:
             domain = None
-        login = { 'username': username, 'password': password,
-                  'domain': domain }
-        powershell.start(**login)
+        auth = { 'username': username, 'password': password,
+                 'domain': domain }
         try:
-            powershell.execute('Login-User')  # Uses SSPI
-        except PowerShellError:
+            # The procedure to authenticate to RHEV-M is different when we
+            # are running under IIS as compared to when we aren't.
+            # PowerShell uses threading. Under IIS, which uses thread
+            # impersonation, the access token of the current thread is not
+            # equal to the access token of the current process. PowerShell
+            # starts up new threads, and those threads will inherit the
+            # original ISS token not the impersonation token. So those
+            # threads end up with different credentials than the main
+            # threads. This makes PowerShell abort.  To fix this, we use
+            # CreateProcessAsUser.  Conveniently, the NETWORK SEVICE account
+            # has the privilege to use this call.
+            if hasattr(sys, 'isapidllhandle'):
+                powershell.start(**auth)
+                powershell.execute('Login-User')  # Uses SSPI
+            else:
+                powershell.start()
+                powershell.execute('Login-User %s' % create_cmdline(**auth))
+        except (PowerShellError, WindowsError):
             headers = [('WWW-Authenticate', 'Basic realm=rhevm')]
             raise Error(http.UNAUTHORIZED, headers, reason='Could not logon.')
         result = powershell.execute('Get-Version')
@@ -86,7 +102,12 @@ class StructuredInput(InputFilter):
             return input
         if self.argproc:
             tags = [request.match['action']]
+            if 'command' in result:
+                tags.append(result['command'])
+            print 'TAGS', tags
+            print 'POSTED DATA', repr(result)
             result = self.argproc.process(result, tags=tags)
+            print 'PROCESSED DATA', repr(result)
         return result
 
 
