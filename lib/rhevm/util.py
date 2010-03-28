@@ -8,6 +8,18 @@
 
 from rhevm.api import powershell
 
+def cached(func):
+    """Decorator that caches the result of a function."""
+    cache = {}
+    def cached_result(*args):
+        try:
+            return cache[args]
+        except KeyError:
+            ret = func(*args)
+            cache[args] = ret
+            return ret
+    return cached_result
+
 def create_filter(**kwargs):
     conditions = ['1']
     for key in kwargs:
@@ -31,6 +43,7 @@ def create_cmdline(**kwargs):
     cmdline = ' '.join(arguments)
     return cmdline
 
+@cached
 def cluster_id(name):
     """Return the cluster ID for a cluster name."""
     filter = create_filter(name=name)
@@ -39,6 +52,7 @@ def cluster_id(name):
         raise KeyError, 'Cluster not found.'
     return result[0]['ClusterID']
 
+@cached
 def cluster_name(id):
     """Retur the cluster name for a given ID."""
     filter = create_filter(clusterid=id)
@@ -56,6 +70,7 @@ def template_object(name):
     powershell.execute('$template = Select-Template | %s' % filter)
     return '$template'
 
+@cached
 def template_name(id):
     """Retur the template name for a given ID."""
     filter = create_filter(templateid=id)
@@ -64,6 +79,7 @@ def template_name(id):
         raise KeyError, 'Template not found.'
     return result[0]['Name']
 
+@cached
 def host_id(name):
     """Return the host ID for a host name."""
     filter = create_filter(name=name)
@@ -72,6 +88,7 @@ def host_id(name):
         raise KeyError, 'Host not found.'
     return result[0]['HostID']
 
+@cached
 def host_name(id, cluster):
     """Retur the host name for a given ID."""
     if id in ('-1', None):
@@ -82,6 +99,7 @@ def host_name(id, cluster):
         return
     return result[0]['Name']
 
+@cached
 def pool_id(name):
     """Return the pool ID for a pool name."""
     filter = create_filter(name=name)
@@ -90,6 +108,7 @@ def pool_id(name):
         raise KeyError, 'Pool not found.'
     return result[0]['PoolID']
 
+@cached
 def pool_name(id):
     """Retur the pool name for a given ID."""
     filter = create_filter(poolid=id)
