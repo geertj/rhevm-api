@@ -172,11 +172,14 @@ class PowerShell(object):
 
     def close(self):
         """Close the powershell process."""
+        if not self.child:
+            return
         self.child.sendline('Exit')
         try:
             self.child.wait(timeout=2)
         except TIMEOUT:
             self.child.terminate()
+        self.child = None
 
     def execute(self, command):
         """Execute a command. Return a string, a list of objects, or
