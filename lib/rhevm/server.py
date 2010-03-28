@@ -9,10 +9,16 @@
 import re
 import sys
 import logging
+import inspect
 from optparse import OptionParser
 
 from rest import make_server
 from rhevm.application import RhevmApp
+
+from isapi_wsgi import ISAPIThreadPoolHandler
+from isapi.install import (ISAPIParameters, ScriptMapParams,
+                           VirtualDirParameters, HandleCommandLine)
+
 
 re_listen = re.compile('([-A-Za-z.]+):([0-9]+)')
 
@@ -32,7 +38,7 @@ def _setup_logging(debug):
     logger.setLevel(level)
 
 
-def main():
+def cmdline():
     """Command-line integration. Start up the API based on the built-in
     wsgiref web server."""
     parser = OptionParser()
@@ -55,3 +61,21 @@ def main():
         server.serve_forever()
     except KeyboardInterrupt:
         pass
+
+
+def __ExtensionFactory__():
+    _setup_logging(True)
+    return ISAPIThreadPoolHandler(RhevmApp)
+
+
+def isapi():
+    params = ISAPIParameters()
+    sm = ScriptMapParams(Extension='*', Flags=0)
+    vd = VirtualDirParameters(Name='api', Description='RHEVManagerApi',
+                              ScriptMaps=[sm], ScriptMapUpdate='replace')
+    params.VirtualDirs = [vd]
+    # A DLL with the name _server.dll is installed in the same directory as
+    # this file. But because we're called by a setuptools entry_point, we need
+    # to override the default.
+    fname = inspect.getfile(sys.modules[__name__])
+    HandleCommandLine(params, conf_module_name=fname)

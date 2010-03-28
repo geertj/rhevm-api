@@ -35,7 +35,10 @@ class PowerShell(object):
 
     def __init__(self):
         self.logger = logging.getLogger('rhevm.powershell')
-        self.child = winspawn('powershell.exe -Command -')
+        self.child = None
+
+    def start(self, **args):
+        self.child = winspawn('powershell.exe -Command -', **args)
 
     _re_separator = re.compile('-+')
 
@@ -178,6 +181,8 @@ class PowerShell(object):
     def execute(self, command):
         """Execute a command. Return a string, a list of objects, or
         raises an exception."""
+        if self.child is None:
+            self.start()
         script = 'Write-Host "START-OF-OUTPUT-MARKER";'
         script += '%s;' % command 
         script += 'Write-Host "END-OF-OUTPUT-MARKER $?";'

@@ -26,7 +26,7 @@ class RequireAuthentication(InputFilter):
     def filter(self, input):
         auth = request.header('Authorization')
         if not auth:
-            headers = [('WWW-Authenticate', 'Basic realm=rhev')]
+            headers = [('WWW-Authenticate', 'Basic realm=rhevm')]
             raise Error(http.UNAUTHORIZED, headers,
                         reason='No Authorization header')
         try:
@@ -35,7 +35,7 @@ class RequireAuthentication(InputFilter):
             raise Error(http.BAD_REQUEST,
                 reason='Illegal Authorization header')
         if method != 'Basic':
-            headers = [('WWW-Authenticate', 'Basic realm=rhev')]
+            headers = [('WWW-Authenticate', 'Basic realm=rhevm')]
             raise Error(http.UNAUTHORIZED, headers,
                         reason='Illegal Authorization scheme')
         try:
@@ -50,14 +50,14 @@ class RequireAuthentication(InputFilter):
                 raise Error(http.BAD_REQUEST, reason='Illegal user name')
         else:
             domain = None
-        args = { 'UserName': username, 'Password': password, 'Domain': domain }
-        cmdline = create_cmdline(**args)
+        login = { 'username': username, 'password': password,
+                  'domain': domain }
+        powershell.start(**login)
         try:
-            powershell.execute('Login-User %s' % cmdline)
+            powershell.execute('Login-User')  # Uses SSPI
         except PowerShellError:
-            headers = [('WWW-Authenticate', 'Basic realm=rhev')]
-            raise Error(http.UNAUTHORIZED, headers,
-                        reason='Illegal username/password')
+            headers = [('WWW-Authenticate', 'Basic realm=rhevm')]
+            raise Error(http.UNAUTHORIZED, headers, reason='Could not logon.')
         result = powershell.execute('Get-Version')
         version = tuple(map(int, (result[0][i] for i in (
                             'Major', 'Minor', 'Build', 'Revision'))))

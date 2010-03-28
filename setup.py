@@ -66,11 +66,14 @@ class mybuild(build):
 
 setup(
     package_dir = { '': 'lib' },
-    packages = ['rhevm', 'rhevm.test'],
+    packages = ['rhevm', 'rhevm.module', 'rhevm.test'],
     test_suite = 'nose.collector',
-    entry_points = { 'console_scripts': [ 'rhevmapi = rhevm.server:main' ] },
+    entry_points = { 'console_scripts': [
+            'rhevm-api-cmdline = rhevm.server:cmdline',
+            'rhevm-api-isapi = rhevm.server:isapi'] },
     install_requires = ['argproc >= 1.0', 'winpexpect >= 1.0',
-                        'python-rest >= 1.0', 'pyyaml >= 3.09'],
+                        'python-rest >= 1.0', 'pyyaml >= 3.09',
+                        'isapi_wsgi >= 0.4.1'],
     cmdclass = { 'build': mybuild },
     **version_info
 )
