@@ -8,12 +8,13 @@
 
 from nose.tools import assert_raises
 
-from rhevm.powershell import PowerShell, PowerShellError
-from rhevm.test.base import RhevmTest
+from rhevm import *
+from rhevm.test.base import RhevmTest, local_only
 
 
 class TestPowerShell(RhevmTest):
 
+    @local_only
     def test_short_form(self):
         result = self.powershell.execute('Get-Version')
         assert len(result) == 1
@@ -22,6 +23,7 @@ class TestPowerShell(RhevmTest):
         assert 'Build' in result[0]
         assert 'Revision' in result[0]
 
+    @local_only
     def test_long_form(self):
         result = self.powershell.execute('Select-Event | '
                                          'Select-Object -First 1')
@@ -32,17 +34,20 @@ class TestPowerShell(RhevmTest):
         assert 'Message' in result[0]
         assert 'Severity' in result[0]
 
+    @local_only
     def test_multiple_entries(self):
         result = self.powershell.execute('Select-Event | '
                                          'Select-Object -First 10')
         print 'RESULT', len(result)
         assert len(result) == 10
     
+    @local_only
     def test_zero_entries(self):
         result = self.powershell.execute('Select-Event | '
                                          'Select-Object -First 0')
         assert len(result) == 0
 
+    @local_only
     def test_error(self):
         try:
             # Generate an exception by passing an unknown argument

@@ -6,7 +6,12 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
+import sys
 from rhevm.error import Error
-from rhevm.powershell import PowerShell
-from rhevm.application import RhevmApp
 from rhevm._version import *
+
+# Allow this package to be imported on non-Windows platforms as well
+# (to run the test suite remotely).
+if sys.platform in ('win32', 'win64'):
+    from rhevm.application import RhevmApp
+    from rhevm.powershell import PowerShell, PowerShellError
