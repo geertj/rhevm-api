@@ -19,6 +19,7 @@ class RhevmApp(Application):
         self.load_module('rhevm.appcfg')
         self.load_module('rhevm.module.datacenter')
         self.load_module('rhevm.module.vm')
+        self.load_module('rhevm.module.vmcontrol')
         self.load_module('rhevm.module.nic')
         self.load_module('rhevm.module.disk')
 

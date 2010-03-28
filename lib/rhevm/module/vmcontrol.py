@@ -25,17 +25,19 @@ class VmControlCollection(RhevmCollection):
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
             return
-        control = input.pop('control')
+        command = input.pop('command')
         cmdline = create_cmdline(**input)
-        if control == 'start':
+        print 'input', repr(input)
+        print 'cmdline', repr(cmdline)
+        if command == 'start':
             powershell.execute('Start-Vm -VmObject $vm %s' % cmdline)
-        elif control == 'stop':
+        elif command == 'stop':
             powershell.execute('Stop-Vm -VmObject $vm %s' % cmdline)
-        elif control == 'shutdown':
+        elif command == 'shutdown':
             powershell.execute('Shutdown-Vm -VmObject $vm %s' % cmdline)
-        elif control == 'suspend':
+        elif command == 'suspend':
             powershell.execute('Suspend-Vm -VmObject $vm %s' % cmdline)
-        elif control == 'migrate':
+        elif command == 'migrate':
             powershell.execute('Migrate-Vm -VmObject $vm %s' % cmdline)
 
 
@@ -44,22 +46,23 @@ def setup_module(app):
                   collection='vmcontrol', action='create')
     proc = ArgumentProcessor()
     proc.rules("""
-        $command:('start', 'stop', 'shutdown', 'suspend', 'migrate) *
+        $command:('start', 'stop', 'shutdown', 'suspend', 'migrate') *
                 => $command
+
         # Start-Vm parameters
-        if(boolean($hwaccel), None) [command=start] => $DisableHardwareAcceleration
-        if(boolean($pause), None) [command=start] => $RunAndPause
-        $display:('vnc', 'spice') [command=start] => $DisplayType
-        if(boolean($acpi), None) [command=start] => $AcpiDisable
-        $boot [command=start] => $BootDevice
-        $cdrom [command=start] => $IsoFileName
-        $floppy [command=start] => $FloppyPath
-        $host [command=start] => $DestinationHostId
-        boolean($stateless) [command=start] => $RunAsStateless
-        $reinit [command=start] => $Reinitialize
+        invert(boolean($hwaccel)) => $DisableHardwareAcceleration [start]
+        invert(boolean($pause)) => $RunAndPause [start]
+        adjust($display:('vnc', 'spice')) => $DisplayType [start]
+        invert(boolean($acpi)) => $AcpiDisable [start]
+        adjust($boot:('network', 'harddisk', 'cdrom')) => $BootDevice [start]
+        $cdrom => $IsoFileName [start]
+        $floppy => $FloppyPath [start]
+        host_id($host) => $DestinationHostId [start]
+        boolean($stateless) => $RunAsStateless [start]
+        boolean($reinit) => $Reinitialize [start]
 
         # Move-Vm parameters
-        host_id($host) [command=migrate] => $DestHostId
+        host_id($host) => $DestHostId [migrate]
     """)
     app.add_input_filter(StructuredInput(proc), collection='vmcontrol')
     app.add_output_filter(StructuredOutput(proc), collection='vmcontrol')

@@ -124,7 +124,22 @@ def upper(s):
     return s.upper()
 
 def boolean(s):
-    return s == 'True'
+    return s in ('True', 'true', True)
 
 def equals(s, ref):
     return s == ref
+
+def invert(b):
+    return not b
+
+def adjust(s):
+    if s == 'cdrom':
+        return 'CD'
+    elif s == 'harddisk':
+        return 'HardDisk'
+    elif s == 'network':
+        return 'Network'
+    elif s == 'vnc':
+        return 'VNC'
+    elif s == 'spice':
+        return 'Spice'
