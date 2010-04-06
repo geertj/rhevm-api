@@ -6,10 +6,11 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
+from nose import SkipTest
 from nose.tools import assert_raises
 
 from rhevm import *
-from rhevm.test.base import RhevmTest, local_only
+from rhevm.test.base import RhevmTest, local_only, require_rhev
 
 
 class TestPowerShell(RhevmTest):
@@ -46,6 +47,24 @@ class TestPowerShell(RhevmTest):
         result = self.powershell.execute('Select-Event | '
                                          'Select-Object -First 0')
         assert len(result) == 0
+
+    @local_only
+    @require_rhev('2.2')
+    def test_nested_object(self):
+        result = self.powershell.execute('Select-DataCenter')
+        assert isinstance(result[0]['CompatibilityVersion'], dict)
+        assert 'Major' in result[0]['CompatibilityVersion']
+        assert 'Minor' in result[0]['CompatibilityVersion']
+
+    @local_only
+    def test_continuation(self):
+        self.powershell.execute('$dc = Select-DataCenter'
+                                ' | Select-Object -First 1')
+        desc = 'long line that overflows for sure.' * 5
+        self.powershell.execute('$dc.description = "%s"' % desc)
+        result = self.powershell.execute('Out-Host -InputObject $dc')
+        assert len(result) == 1
+        assert result[0]['Description'] == desc
 
     @local_only
     def test_error(self):

@@ -33,6 +33,20 @@ def local_only(func):
     run_test.__name__ = func.__name__
     return run_test
 
+def require_rhev(version):
+    """Skip a test if we don't have a minimum RHEV version."""
+    version = map(int, version.split('.'))
+    def decorator(func):
+        def run_test(self):
+            result = self.powershell.execute('Get-Version')
+            current = (result[0]['Major'], result[0]['Minor'],
+                       result[0]['Build'], result[0]['Revision'])
+            if not current > version:
+                raise SkipTest, 'Test skipped for this RHEV-M version.'
+            func(self)
+        run_test.__name__ = func.__name__
+        return run_test
+    return decorator
 
 class TestError(Exception):
     pass

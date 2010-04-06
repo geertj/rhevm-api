@@ -11,9 +11,11 @@ import os
 import os.path
 import stat
 import logging
+import itertools
 
 from winpexpect import winspawn, TIMEOUT, WindowsError
 from rhevm.error import Error
+from compat import namedtuple
 
 
 class PowerShellError(Error):
@@ -54,134 +56,138 @@ class PowerShell(object):
             os.environ['Path'] = newpath
         self.child = winspawn('powershell.exe -Command -', **args)
 
-    _re_separator = re.compile('-+')
-
-    def _parse_objects(self, output):
-        """INTERNAL: Parse a list of PowerShell objects."""
-        result = []
-        state = 'DETECT_FORM'
-        lines = output.splitlines()
-        for line in lines:
-            if state == 'DETECT_FORM':
-                if not line:
-                    continue
-                p1 = line.find(':')
-                if p1 == -1:
-                    keys = line.split()
-                    result.append({})
-                    state = 'SKIP_HYPHENS_SHORT_FORM'
-                else:
-                    key = line[:p1].strip()
-                    value = line[p1+1:].strip()
-                    result.append({})
-                    result[-1][key] = value or None
-                    state = 'READ_OBJECT_LONG_FORM'
-            elif state == 'SKIP_HYPHENS_SHORT_FORM':
-                separators = line.strip().split()
-                if len(separators) != len(keys):
-                    raise ParseError
-                for sep in separators:
-                    if not self._re_separator.match(sep):
-                        raise ParseError
-                state = 'READ_OBJECT_SHORT_FORM'
-            elif state == 'READ_OBJECT_SHORT_FORM':
-                values = line.split()
-                if len(values) != len(keys):
-                    raise ParseError
-                for i in range(len(keys)):
-                    result[-1][keys[i]] = values[i]
-                state = 'SKIP_TRAILING_NEWLINES'
-            elif state == 'NEW_OBJECT_LONG_FORM':
-                if not line:
-                    continue
-                p1 = line.find(':')
-                if p1 == -1:
-                    raise ParseError
-                key = line[:p1].strip()
-                value = line[p1+1:].strip()
-                result.append({})
-                result[-1][key] = value or None
-                state = 'READ_OBJECT_LONG_FORM'
-            elif state == 'READ_OBJECT_LONG_FORM':
-                if not line:
-                    state = 'NEW_OBJECT_LONG_FORM'
-                    continue
-                p1 = line.find(':')
-                if p1 == -1:
-                    raise ParseError
-                key = line[:p1].strip()
-                value = line[p1+1:].strip()
-                result[-1][key] = value or None
-            elif state == 'SKIP_TRAILING_NEWLINES':
+    def _detect_short_form(self, output):
+        """INTERNAL detect if output is in short form."""
+        short = False
+        s_read_first_line, s_read_second_line = range(2)
+        state = s_read_first_line
+        for line in output:
+            if state == s_read_first_line:
                 if line and not line.isspace():
-                    raise ParseError
+                    state = s_read_second_line
+            elif state == s_read_second_line:
+                if line.startswith('-'):
+                    short = True
+                break
+        return short
+
+    def _parse_objects_short_form(self, output):
+        """INTERNAL: Parse a list of PowerShell objects (short form)."""
+        s_read_keys, s_skip_hyphens, s_read_values = range(3)
+        state = s_read_keys
+        for line in output:
+            if state == s_read_keys:
+                if line and not line.isspace():
+                    keys = line.strip().split()
+                    state = s_skip_hyphens
+            elif state == s_skip_hyphens:
+                assert line.startswith('-')
+                state = s_read_values
+            elif state == s_read_values:
+                values = line.strip().split()
+        if state != s_read_values:
+            raise ParseError
+        if len(keys) != len(values):
+            raise ParseError
+        object = dict(zip(keys, values))
+        return [object]
+
+    _re_key_value = re.compile('\s*(?P<key>[a-zA-Z_][a-zA-Z0-9_]*)'
+                               '(\s+:)?\s+(?P<value>.*)$')
+    _re_nested_object = re.compile('Class Name: (.*)')
+    _re_continuation = re.compile('\s+(?P<value>[^\s].*)$')
+
+    def _parse_objects_long_form(self, output):
+        """INTERNAL: Parse a list of PowerShell objects."""
+        # PowerShell output was not made for parsing... What we have below
+        # should work reasonably well, but it's not pretty.
+        result = [];
+        state = namedtuple('state', ('obstack', 'indent', 'lastkey',
+                                     'lastvaluepos'))
+        state.obstack = []
+        state.indent = []
+        for line in itertools.chain(output, [None]):  # Mark End of Input
+            if not line or line.isspace():
+                if state.obstack:
+                    result.append(state.obstack[0])
+                    del state.obstack[:]
+                    del state.indent[:]
+                continue
+            match = self._re_continuation.match(line)
+            if match and state.lastkey and \
+                    match.start('value') == state.lastvaluepos:
+                state.obstack[-1][state.lastkey] += match.group('value')
+                continue
+            match = self._re_key_value.match(line)
+            if not match:
+                raise ParseError, 'Key/value regex did not match.'
+            level = match.start('key')
+            if not state.obstack:
+                state.obstack.append({})
+                state.indent.append(level)
+            if level != state.indent[-1]:
+                for ix,lvl in enumerate(state.indent):
+                    if lvl == level:
+                        break
+                else:
+                    raise ParseError, 'Unknow indent level.'
+                npop = len(state.indent) - ix - 1
+                for i in range(npop):
+                    state.obstack.pop()
+                    state.indent.pop()
+            key = match.group('key')
+            value = match.group('value')
+            if self._re_nested_object.match(value):
+                nested = {}
+                state.obstack[-1][key] = nested
+                state.obstack.append(nested)
+                state.indent.append(match.start('value'))
+                state.lastvaluepos = None
+            elif not value:
+                state.obstack[-1][key] = None
+                state.lastvaluepos = None
+            else:
+                state.obstack[-1][key] = value
+                state.lastkey = key
+                state.lastvaluepos = match.start('value')
         return result
 
-    _re_error_end_header = re.compile('At line:\d+')
-    _re_error_property = re.compile(
-            '\s+\+ (CategoryInfo|FullyQualifiedErrorId)\s+:\s+(.*?)\s*$')
-    _re_error_property_continuation = re.compile('\s+([^\s+].*?)\s*$')
+    _re_error_end_message = re.compile('At line:\d+')
+    _re_error_property = re.compile('\s+\+ (?P<name>[a-zA-Z_][a-zA-Z0-9_]*)'
+                                    '\s+:\s+(?P<value>.*)$')
 
     def _parse_error(self, output):
         """INTERNAL: Parse an error response."""
-        lines = output.splitlines()
-        state = 'READ_ERROR_MESSAGE'
-        error = PowerShellError()
-        for line in lines:
-            if state == 'READ_ERROR_MESSAGE':
-                error.message = line
-                state = 'CONTINUE_ERROR_MESSAGE'
-            elif state == 'CONTINUE_ERROR_MESSAGE':
-                mobj = self._re_error_end_header.match(line)
-                if not mobj:
-                    error.message += line
+        error = PowerShellError(message='', category='', id='')
+        s_read_message, s_read_properties = range(2)
+        state = namedtuple('state', ('state', 'property'))
+        state.state = s_read_message
+        state.property = None
+        for line in output:
+            if state.state == s_read_message:
+                if not line or line.isspace():
                     continue
-                state = 'READ_ERROR_PROPERTIES'
-            elif state == 'READ_ERROR_PROPERTIES':
-                mobj = self._re_error_property.match(line)
-                if not mobj:
+                if self._re_error_end_message.match(line):
+                    state.state = s_read_properties
                     continue
-                name, value = mobj.groups()
+                error.message += line
+            elif state.state == s_read_properties:
+                if not line or line.isspace():
+                    break
+                match = self._re_error_property.match(line)
+                if match:
+                    name = match.group('name')
+                    value = match.group('value')
+                elif state.property:
+                    name = state.property
+                    value = line.lstrip()
+                else:
+                    continue
                 if name == 'CategoryInfo':
-                    error.category = value
-                    state = 'CONTINUE_ERROR_CATEGORY'
+                    error.category += value
                 elif name == 'FullyQualifiedErrorId':
-                    error.id = value
-                    state = 'CONTINUE_ERROR_ID'
-            elif state == 'CONTINUE_ERROR_CATEGORY':
-                mobj = self._re_error_property_continuation.match(line)
-                if mobj:
-                    error.category += mobj.group(1)
-                    continue
-                mobj = self._re_error_property.match(line)
-                if not mobj:
-                    if not line or line.isspace():
-                        state = 'DONE'
-                        continue
-                    raise ParseError
-                name, value = mobj.groups()
-                if name == 'FullyQualifiedErrorId':
-                    error.id = value
-                    state = 'CONTINUE_ERROR_ID'
-                else:
-                    state = 'READ_ERROR_PROPERTIES'
-            elif state == 'CONTINUE_ERROR_ID':
-                mobj = self._re_error_property_continuation.match(line)
-                if mobj:
-                    error.id += mobj.group(1)
-                    continue
-                mobj = self._re_error_property.match(line)
-                if not mobj:
-                    if not line or line.isspace():
-                        state = 'DONE'
-                        continue
-                    raise ParseError
-                name, value = mobj.groups()
-                if name == 'CategoryInfo':
-                    error.category = value
-                    state = 'CONTINUE_ERROR_CATEGORY'
-                else:
-                    state = 'READ_ERROR_PROPERTIES'
+                    error.id += value
+                state.property = name
         return error
 
     def close(self):
@@ -214,9 +220,13 @@ class PowerShell(object):
             raise ParseError, 'TIMEOUT in PowerShell command.'
         status = bool(self.child.match.group(1) == 'True')
         output = self.child.before
+        output = output.splitlines()
         if status:
-            if output.startswith('\r\n'):
-                result = self._parse_objects(output)
+            if output and not output[0]:
+                if self._detect_short_form(output):
+                    result = self._parse_objects_short_form(output)
+                else:
+                    result = self._parse_objects_long_form(output)
             else:
                 result = output
         else:
