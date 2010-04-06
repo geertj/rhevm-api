@@ -4,8 +4,8 @@
 #username = <username>
 #domain = <domain>
 #password = <password>
-#datacenter = Main
-#cluster = Main
+#datacenter = Default
+#cluster = Default
 #template = Blank
 #
 # This is an optional setting. If you set it, the API ill be tested at this
