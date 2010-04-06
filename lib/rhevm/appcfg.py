@@ -44,13 +44,10 @@ class RequireAuthentication(InputFilter):
         except (ValueError, binascii.Error):
             raise Error(http.BAD_REQUEST,
                         reason='Illegal Authorization header')
-        if '@' in username:
-            try:
-                username, domain = username.split('@')
-            except ValueError:
-                raise Error(http.BAD_REQUEST, reason='Illegal user name')
-        else:
-            domain = None
+        try:
+            username, domain = username.split('@')
+        except ValueError:
+            raise Error(http.BAD_REQUEST, reason='Illegal user name')
         auth = { 'username': username, 'password': password,
                  'domain': domain }
         try:

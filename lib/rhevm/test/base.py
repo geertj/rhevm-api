@@ -72,6 +72,7 @@ class RhevmTest(object):
 	else:
 	    url = None	
         username = self.config.get('test', 'username')
+        domain = self.config.get('test', 'domain')
         password = self.config.get('test', 'password')
         if url:
             parsed = urlparse.urlparse(url)
@@ -94,8 +95,10 @@ class RhevmTest(object):
             time.sleep(0.5)
             self.client = HTTPConnection(*self.server.address)
             self.powershell = PowerShell()
-            self.powershell.execute('Login-User %s %s' % (username, password))
-        auth = '%s:%s' % (username, password)
+            self.powershell.execute('Login-User -UserName %s -Domain %s'
+                                    ' -Password %s'
+                                    % (username, domain, password))
+        auth = '%s@%s:%s' % (username, domain, password)
         auth = 'Basic %s' % auth.encode('base64').rstrip()
         self.headers = { 'Authorization': auth,
                          'Accept': 'text/yaml',
