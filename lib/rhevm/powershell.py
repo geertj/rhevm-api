@@ -7,7 +7,9 @@
 # "AUTHORS" for a complete overview.
 
 import re
+import os
 import os.path
+import stat
 import logging
 
 from winpexpect import winspawn, TIMEOUT, WindowsError
@@ -38,6 +40,18 @@ class PowerShell(object):
         self.child = None
 
     def start(self, **args):
+        # On Windows 2008 R2, which is always 64-bit,  the PowerShell bindings
+        # are only installed in the  32-bit "Windows on Windows" environment.
+        syswow = r'C:\Windows\SysWOW64'
+        try:
+            st = os.stat(syswow)
+        except OSError:
+            st = None
+        if st and stat.S_ISDIR(st.st_mode):
+            newpath = os.path.join(syswow, 'WindowsPowerShell', 'v1.0')
+            newpath += os.pathsep
+            newpath += os.environ['Path']
+            os.environ['Path'] = newpath
         self.child = winspawn('powershell.exe -Command -', **args)
 
     _re_separator = re.compile('-+')
