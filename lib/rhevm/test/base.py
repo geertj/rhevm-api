@@ -27,7 +27,7 @@ from rhevm.server import _setup_logging
 def local_only(func):
     """Decorator that skips a test if we're testing remotely."""
     def run_test(self):
-        if self.config.get('test', 'url'):
+        if self.config.has_option('test', 'url'):
             raise SkipTest, 'Test skipped in remote test mode.'
         func(self)
     run_test.__name__ = func.__name__
