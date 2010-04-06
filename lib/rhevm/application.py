@@ -22,6 +22,7 @@ class RhevmApp(Application):
         self.load_module('rhevm.module.vmcontrol')
         self.load_module('rhevm.module.nic')
         self.load_module('rhevm.module.disk')
+        self.load_module('rhevm.module.ticket')
 
     def respond(self):
         powershell = PowerShell()

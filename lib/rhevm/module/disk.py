@@ -60,7 +60,12 @@ class DiskCollection(RhevmCollection):
             updates.append('$disk.%s = "%s"' % (key, input[key]))
         updates = '; '.join(updates)
         powershell.execute('$disk = New-Disk %s; %s' % (cmdline, updates))
-        result = powershell.execute('Add-Disk -DiskObject $disk -VmId $vm.VmId')
+        if powershell.version >= (2, 2):
+            result = powershell.execute('Add-Disk -DiskObject $disk'
+                                        ' -VmObject $vm')
+        else:
+            result = powershell.execute('Add-Disk -DiskObject $disk'
+                                        ' -VmId $vm.VmId')
         result = powershell.execute('$vm.GetDiskImages()')
         new = set((disk['InternalDriveMapping'] for disk in result))
         diskid = (new - old).pop()

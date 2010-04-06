@@ -120,7 +120,10 @@ class PowerShell(object):
                 continue
             match = self._re_key_value.match(line)
             if not match:
-                raise ParseError, 'Key/value regex did not match.'
+                # XXX: there appears to be no way to match continuations
+                # in nested sub objects... For now ignore the continuation.
+                #raise ParseError, 'Key/value regex did not match.'
+                continue
             level = match.start('key')
             if not state.obstack:
                 state.obstack.append({})
