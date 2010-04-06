@@ -71,10 +71,6 @@ class RhevmTest(object):
         success = config.read(cfgfile)
         if cfgfile not in success:
             raise TestError, 'Could not read test config at %s.' % cfgfile
-        if not config.has_option('test', 'username') or \
-                not config.has_option('test', 'password'):
-            raise TestError, 'You need to specify both username and ' \
-                        'password in the test config.'
         cls.config = config
         cls.datacenter = config.get('test', 'datacenter')
         cls.cluster = config.get('test', 'cluster')
