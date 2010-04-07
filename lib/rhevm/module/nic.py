@@ -26,7 +26,7 @@ class NicCollection(RhevmCollection):
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
             return
-        filter = create_filter(name=id)
+        filter = create_filter(id=id)
         result = powershell.execute('$vm.GetNetworkAdapters() | %s' % filter)
         if len(result) != 1:
             return
@@ -51,12 +51,13 @@ class NicCollection(RhevmCollection):
         cmdline = create_cmdline(**input)
         result = powershell.execute('Add-NetworkAdapter -VmObject $vm %s'
                                     % cmdline)
-        # Weird output from Add-NetworkAdapter.. This is not equal to the
-        # output of $vm.GetNetworkAdapters(). Re-fetch the object again.
-        filter = create_filter(name=input['InterfaceName'])
+        # On RHEV-M 2.1, i get weird output from Add-NetworkAdapter.. This is
+        # not equal to the output of $vm.GetNetworkAdapters(). Re-fetch the
+        # object again.
+        filter = create_filter(name=input['InterfaceName'])  # This is unique
         result = powershell.execute('$vm.GetNetworkAdapters() | %s' % filter)
         url = mapper.url_for(collection=self.name, action='show',
-                             id=result[0]['Name'],vm=vm)
+                             id=result[0]['Id'],vm=vm)
         return url, result[0]
 
     def delete(self, vm, id):
@@ -65,7 +66,7 @@ class NicCollection(RhevmCollection):
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
             raise KeyError
-        filter = create_filter(name=id)
+        filter = create_filter(id=id)
         result = powershell.execute('$vm.GetNetworkAdapters() | %s'
                                     ' | Tee-Object -Variable nic' % filter)
         if len(result) != 1:
