@@ -26,7 +26,7 @@ class DiskCollection(RhevmCollection):
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
             return
-        filter = create_filter(internaldrivemapping=id)
+        filter = create_filter(snapshotid=id)
         result = powershell.execute('$vm.GetDiskImages() | %s' % filter)
         if not result:
             return
@@ -48,11 +48,12 @@ class DiskCollection(RhevmCollection):
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
             raise KeyError
-        # When adding a disk with Add-Disk, the new InternalDriveMapping is
-        # not returned. Therefore we need to compare disk images before and
-        # after to conclude what our new InternalDriveMapping is.
+        # With RHEVM-2.1, when adding a disk with Add-Disk, the new SnapshotId
+        # is not returned. Therefore we need to compare disk images before and
+        # after to conclude what our new SnapshotId is. On RHEVM-2.2 the
+        # SnapshotId seems to be returned.
         result = powershell.execute('$vm.GetDiskImages()')
-        old = set((disk['InternalDriveMapping'] for disk in result))
+        old = set((disk['SnapshotId'] for disk in result))
         create = { 'DiskSize': input.pop('DiskSize') }
         cmdline = create_cmdline(**create)
         updates = []
@@ -67,12 +68,12 @@ class DiskCollection(RhevmCollection):
             result = powershell.execute('Add-Disk -DiskObject $disk'
                                         ' -VmId $vm.VmId')
         result = powershell.execute('$vm.GetDiskImages()')
-        new = set((disk['InternalDriveMapping'] for disk in result))
+        new = set((disk['SnapshotId'] for disk in result))
         diskid = (new - old).pop()
-        filter = create_filter(internaldrivemapping=diskid)
+        filter = create_filter(snapshotid=diskid)
         result = powershell.execute('$vm.GetDiskImages() | %s' % filter)
         url = mapper.url_for(collection=self.name, action='show', 
-                             id=result[0]['InternalDriveMapping'], vm=vm)
+                             id=result[0]['SnapshotId'], vm=vm)
         return url, result[0]
 
     def delete(self, vm, id):
@@ -81,7 +82,7 @@ class DiskCollection(RhevmCollection):
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
             raise KeyError
-        filter = create_filter(internaldrivemapping=id)
+        filter = create_filter(snapshotid=id)
         result = powershell.execute('$vm.GetDiskImages() | %s'
                                     ' | Tee-Object -Variable disk' % filter)
         if len(result) != 1:
@@ -118,7 +119,7 @@ def setup_module(app):
         $created <= $CreationDate
         $modified <= $LastModified
         $description <= $Description
-        $name <= int($InternalDriveMapping)
+        $drive <= int($InternalDriveMapping)
         $id <= $SnapshotId
         $status <= upper($Status)
         $boot <= boolean($Boot)
