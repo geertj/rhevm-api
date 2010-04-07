@@ -60,7 +60,7 @@ class TestVmControl(RhevmTest):
         assert response.status == http.OK
         # Wait max 2 minutes until the VM is launched
         now = time.time()
-        while time.time() < now + 60:
+        while time.time() < now + 120:
             client.request('GET', vmpath, headers=headers)
             response = client.getresponse()
             assert response.status == http.OK
@@ -78,7 +78,7 @@ class TestVmControl(RhevmTest):
         assert response.status == http.OK
         # Wait until it is suspended
         now = time.time()
-        while time.time() < now + 60:
+        while time.time() < now + 120:
             client.request('GET', vmpath, headers=headers)
             response = client.getresponse()
             assert response.status == http.OK
@@ -106,45 +106,7 @@ class TestVmControl(RhevmTest):
                 break
             print 'state = %s, sleeping' % data['status']
             time.sleep(10)
-        # Shut it down
-        time.sleep(10)
-        command = { 'command': 'shutdown' }
-        body = yaml.dump(command)
-        client.request('POST', ctrlpath, body=body, headers=headers)
-        response = client.getresponse()
-        assert response.status == http.OK
-        # Wait until it is down again.
-        now = time.time()
-        while time.time() < now + 60:
-            client.request('GET', vmpath, headers=headers)
-            response = client.getresponse()
-            assert response.status == http.OK
-            data = yaml.load(response.read())
-            if data['status'] == 'down':
-                break
-            print 'state = %s, sleeping' % data['status']
-            time.sleep(10)
-        # Start it up again
-        command = { 'command': 'start',
-                    'boot': 'cdrom',
-                    'display': 'vnc' }
-        body = yaml.dump(command)
-        client.request('POST', ctrlpath, body=body, headers=headers)
-        response = client.getresponse()
-        assert response.status == http.OK
-        # Wait until it is up
-        now = time.time()
-        while time.time() < now + 60:
-            client.request('GET', vmpath, headers=headers)
-            response = client.getresponse()
-            assert response.status == http.OK
-            data = yaml.load(response.read())
-            if data['status'] == 'up':
-                break
-            print 'state = %s, sleeping' % data['status']
-            time.sleep(10)
         # Stop it
-        time.sleep(10)
         command = { 'command': 'stop' }
         body = yaml.dump(command)
         client.request('POST', ctrlpath, body=body, headers=headers)
@@ -152,7 +114,7 @@ class TestVmControl(RhevmTest):
         assert response.status == http.OK
         # Wait until it is stopped
         now = time.time()
-        while time.time() < now + 60:
+        while time.time() < now + 120:
             client.request('GET', vmpath, headers=headers)
             response = client.getresponse()
             assert response.status == http.OK
