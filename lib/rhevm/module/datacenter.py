@@ -36,7 +36,14 @@ class DataCenterCollection(RhevmCollection):
         cargs = { 'Name': input.pop('Name'),
                   'DataCenterType': input.pop('Type') }
         cmdline = create_cmdline(**cargs)
-        result = powershell.execute('$dc = Add-DataCenter %s' % cmdline)
+        # XXX: setting CompatibilityVersion needs improvement
+        if powershell.version >= (2, 2):
+            powershell.execute('$dc = Select-DataCenter'
+                               ' | Select-Object -First 1')
+            compat = '-CompatibilityVersion $dc.CompatibilityVersion'
+        else:
+            compat = ''
+        powershell.execute('$dc = Add-DataCenter %s %s' % (compat, cmdline))
         updates = []
         for key in input:
             updates.append('$dc.%s = "%s"' % (key, input[key]))
