@@ -87,8 +87,8 @@ setup(
     entry_points = { 'console_scripts': [
             'rhevm-api-cmdline = rhevm.server:cmdline',
             'rhevm-api-isapi = rhevm.server:isapi'] },
-    install_requires = ['argproc >= 1.0', 'winpexpect >= 1.1',
-                        'python-rest >= 1.0', 'pyyaml >= 3.09',
+    install_requires = ['argproc >= 1.1', 'winpexpect >= 1.1',
+                        'python-rest >= 1.1', 'pyyaml >= 3.09',
                         'isapi_wsgi >= 0.4.1'],
     cmdclass = { 'build': mybuild, 'gentab': gentab },
     **version_info
