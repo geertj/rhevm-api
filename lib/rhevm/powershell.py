@@ -18,6 +18,10 @@ from rhevm.error import Error
 from compat import namedtuple
 
 
+def escape(s):
+    return '"%s"' % s.replace('`', '``').replace('"', '`"')
+
+
 class PowerShellError(Error):
     """A PowerShell command exited with an error."""
 
