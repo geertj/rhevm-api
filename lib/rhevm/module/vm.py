@@ -22,7 +22,7 @@ class VmCollection(RhevmCollection):
     objectname = 'vm'
 
     def show(self, id):
-        filter = create_filter(name=id)
+        filter = create_filter(vmid=id)
         result = powershell.execute('Select-Vm | %s' % filter)
         if len(result) != 1:
             return
@@ -47,11 +47,11 @@ class VmCollection(RhevmCollection):
         updates = '; '.join(updates)
         result = powershell.execute('%s; Update-Vm -VmObject $vm' % updates)
         url = mapper.url_for(collection=self.name, action='show',
-                             id=result[0]['Name'])
+                             id=result[0]['VmId'])
         return url, result[0]
 
     def update(self, id, input):
-        filter = create_filter(name=id)
+        filter = create_filter(vmid=id)
         result = powershell.execute('Select-Vm | %s'
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
@@ -64,7 +64,7 @@ class VmCollection(RhevmCollection):
         return result[0]
 
     def delete(self, id):
-        filter = create_filter(name=id)
+        filter = create_filter(vmid=id)
         result = powershell.execute('Select-Vm | %s'
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
