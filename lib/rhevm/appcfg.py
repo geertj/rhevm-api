@@ -101,10 +101,7 @@ class StructuredInput(InputFilter):
             tags = [request.match['action']]
             if 'command' in result:
                 tags.append(result['command'])
-            print 'TAGS', tags
-            print 'POSTED DATA', repr(result)
             result = self.argproc.process(result, tags=tags)
-            print 'PROCESSED DATA', repr(result)
         return result
 
 
