@@ -20,7 +20,7 @@ class VmControlCollection(RhevmCollection):
     name = 'vmcontrol'
 
     def create(self, vm, input):
-        filter = create_filter(name=vm)
+        filter = create_filter(vmid=vm)
         result = powershell.execute('Select-Vm | %s'
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
