@@ -21,7 +21,7 @@ class DiskCollection(RhevmCollection):
     objectname = 'disk'
 
     def show(self, vm, id):
-        filter = create_filter(name=vm)
+        filter = create_filter(vmid=vm)
         result = powershell.execute('Select-Vm | %s'
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
@@ -33,7 +33,7 @@ class DiskCollection(RhevmCollection):
         return result[0]
 
     def list(self, vm, **args):
-        filter = create_filter(name=vm)
+        filter = create_filter(vmid=vm)
         result = powershell.execute('Select-Vm | %s'
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
@@ -43,7 +43,7 @@ class DiskCollection(RhevmCollection):
         return result
 
     def create(self, vm, input):
-        filter = create_filter(name=vm)
+        filter = create_filter(vmid=vm)
         result = powershell.execute('Select-Vm | %s'
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
@@ -76,7 +76,7 @@ class DiskCollection(RhevmCollection):
         return url, result[0]
 
     def delete(self, vm, id):
-        filter = create_filter(name=vm)
+        filter = create_filter(vmid=vm)
         result = powershell.execute('Select-Vm | %s'
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
