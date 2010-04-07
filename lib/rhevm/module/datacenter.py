@@ -21,7 +21,7 @@ class DataCenterCollection(RhevmCollection):
     objectname = 'datacenter'
 
     def show(self, id):
-        filter = create_filter(name=id)
+        filter = create_filter(datacenterid=id)
         result = powershell.execute('Select-DataCenter | %s' % filter)
         if len(result) != 1:
             return
@@ -51,11 +51,11 @@ class DataCenterCollection(RhevmCollection):
         result = powershell.execute('%s; Update-DataCenter'
                                     ' -DataCenterObject $dc' % updates)
         url = mapper.url_for(collection=self.name, action='show',
-                             id=result[0]['Name'])
+                             id=result[0]['DataCenterId'])
         return url, result[0]
 
     def update(self, id, input):
-        filter = create_filter(name=id)
+        filter = create_filter(datacenterid=id)
         result = powershell.execute('Select-DataCenter | %s'
                                     ' | Tee-Object -Variable dc' % filter)
         if len(result) != 1:
@@ -69,7 +69,7 @@ class DataCenterCollection(RhevmCollection):
         return result[0]
 
     def delete(self, id):
-        filter = create_filter(name=id)
+        filter = create_filter(datacenterid=id)
         result = powershell.execute('Select-DataCenter | %s'
                                     ' | Tee-Object -Variable dc' % filter)
         if len(result) != 1:
