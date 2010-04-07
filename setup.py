@@ -64,6 +64,22 @@ class mybuild(build):
         build.run(self)
 
 
+class gentab(Command):
+    """Generate the PLY parse tables."""
+
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        from rhevm.query import QueryParser
+        QueryParser._write_parsetab()
+
+
 setup(
     package_dir = { '': 'lib' },
     packages = ['rhevm', 'rhevm.module', 'rhevm.test'],
@@ -74,6 +90,6 @@ setup(
     install_requires = ['argproc >= 1.0', 'winpexpect >= 1.1',
                         'python-rest >= 1.0', 'pyyaml >= 3.09',
                         'isapi_wsgi >= 0.4.1'],
-    cmdclass = { 'build': mybuild },
+    cmdclass = { 'build': mybuild, 'gentab': gentab },
     **version_info
 )

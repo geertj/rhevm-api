@@ -12,6 +12,7 @@ from rhevm.api import powershell
 from rhevm.util import *
 from rhevm.appcfg import StructuredInput, StructuredOutput
 from rhevm.collection import RhevmCollection
+from rhevm.powershell import escape
 
 
 class VmCollection(RhevmCollection):
@@ -28,8 +29,10 @@ class VmCollection(RhevmCollection):
         return result[0]
 
     def list(self, **filter):
+        query = filter.pop('query', 'vms:')
         filter = create_filter(**filter)
-        result = powershell.execute('Select-Vm | %s' % filter)
+        result = powershell.execute('Select-Vm -SearchText %s | %s'
+                                    % (escape(query), filter))
         return result
 
     def create(self, input):
@@ -115,6 +118,9 @@ def setup_module(app):
         # XXX: syntax error in Select-VmPool. Bug?
         #pool_id($pool) <= pool_name($PoolId)
         $pool <= int($PoolId)
+
+        # Searching
+        parse_query($query) => $query [list]
         """)
     app.add_input_filter(StructuredInput(proc), collection='vms')
     app.add_output_filter(StructuredOutput(proc), collection='vms')

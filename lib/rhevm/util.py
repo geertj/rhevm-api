@@ -7,6 +7,7 @@
 # "AUTHORS" for a complete overview.
 
 from rhevm.api import powershell
+from rhevm.query import QueryParser
 
 def cached(func):
     """Decorator that caches the result of a function."""
@@ -143,3 +144,8 @@ def adjust(s):
         return 'VNC'
     elif s == 'spice':
         return 'Spice'
+
+def parse_query(s):
+    parser = QueryParser()
+    parsed = parser.parse(s)
+    return parsed.tostring()

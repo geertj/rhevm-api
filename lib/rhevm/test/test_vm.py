@@ -19,10 +19,11 @@ class TestVm(RhevmTest):
     def test_crud(self):
         client = self.client
         headers = self.headers
+        # Create a VM
         headers['Content-Type'] = 'text/yaml'
         data = { 'name': 'test-%s' % random.randint(0, 1000000),
-                 'template': 'Blank',
-                 'cluster': 'Main' }
+                 'template': self.template,
+                 'cluster': self.cluster }
         body = yaml.dump(data)
         client.request('POST', '/api/vms', body=body, headers=headers)
         response = client.getresponse()
@@ -30,6 +31,7 @@ class TestVm(RhevmTest):
         location = response.getheader('Location')
         assert location is not None
         url = urlparse(location)
+        # Check that it is created
         client.request('GET', '/api/vms', headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
@@ -40,6 +42,7 @@ class TestVm(RhevmTest):
                 break
         else:
             raise AssertionError
+        # Update it
         del data['template']
         data['memory'] = 512
         data['description'] = 'My new virtual machine'
@@ -47,6 +50,7 @@ class TestVm(RhevmTest):
         client.request('PUT', url.path, body=body, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
+        # Check the updates
         client.request('GET', url.path, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
@@ -54,6 +58,14 @@ class TestVm(RhevmTest):
         data = yaml.load(response.read())
         assert data['memory'] == 512
         assert data['description'] == 'My new virtual machine'
+        # Try a few searches
+        path = '/api/vms?query=name%3dtest-%2a'
+        client.request('GET', path, headers=headers)
+        response = client.getresponse()
+        assert response.status == http.OK
+        data = yaml.load(response.read())
+        assert len(data) > 1
+        # Delete it
         client.request('DELETE', url.path, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
