@@ -20,7 +20,7 @@ from isapi.install import (ISAPIParameters, ScriptMapParams,
                            VirtualDirParameters, HandleCommandLine)
 
 
-re_listen = re.compile('([-A-Za-z.]+):([0-9]+)')
+re_listen = re.compile('([-A-Za-z0-9.]+):([0-9]+)')
 
 
 def _setup_logging(debug):
