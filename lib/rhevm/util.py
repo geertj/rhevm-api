@@ -112,6 +112,8 @@ def pool_id(name):
 @cached
 def pool_name(id):
     """Retur the pool name for a given ID."""
+    if id == '-1':
+        return None
     filter = create_filter(poolid=id)
     result =powershell.execute('Select-VmPool | %s' % filter)
     if len(result) != 1:

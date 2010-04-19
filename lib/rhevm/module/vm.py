@@ -98,8 +98,7 @@ def setup_module(app):
         $cluster <= cluster_name($HostClusterId)
         $template <= template_name($TemplateId)
         $host <= host_name($RunningOnHost, $HostClusterId)
-        # XXX: syntax error in Select-VmPool. Bug?
-        #pool_id($pool) <= pool_name($PoolId)
+        $pool <= pool_name($PoolId) [!rhev21]
 
         # Read-only properties
         $id <= $VmId

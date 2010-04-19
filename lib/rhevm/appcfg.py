@@ -101,6 +101,7 @@ class StructuredInput(InputFilter):
             tags = [request.match['action']]
             if 'command' in result:
                 tags.append(result['command'])
+            tags.append('rhev%d%d' % powershell.version[:2])
             result = self.argproc.process(result, tags=tags)
         return result
 
