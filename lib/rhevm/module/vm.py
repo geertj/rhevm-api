@@ -36,10 +36,9 @@ class VmCollection(RhevmCollection):
         return result
 
     def create(self, input):
-        cargs = { 'Name': input.pop('Name'),
-                  'TemplateObject': input.pop('TemplateId'),
-                  'HostClusterId': input.pop('HostClusterId') }
-        cmdline = create_cmdline(**cargs)
+        props = ('Name', 'TemplateObject', 'HostClusterId', 'VmType')
+        args = dict(((prop, input.pop(prop)) for prop in props))
+        cmdline = create_cmdline(**args)
         result = powershell.execute('$vm = Add-VM %s' % cmdline)
         updates = []
         for key in input:
@@ -76,12 +75,13 @@ def setup_module(app):
     proc = ArgumentProcessor()
     proc.rules("""
         # Properties required for creation
-        $name * <=> $Name
-        cluster_id($cluster) * <=> cluster_name($HostClusterId)
-        template_object($template) * => template_name($TemplateId) [create]
-        template_id($template) <= template_name($TemplateId)
+        $name* => $Name [create]
+        cluster_id($cluster)* => $HostClusterId [create]
+        template_object($template)* => $TemplateObject [create]
+        $type:('server', 'desktop')* => $VmType [create]
 
         # Read-write properties
+        $name <=> $Name
         $description <=> $Description
         $memory:int <=> int($MemorySize)
         $domain <=> $Domain
@@ -92,15 +92,18 @@ def setup_module(app):
         $nice:int <=> int($NiceLevel)
         int($failback) <=> boolean($FailBack)
         $boot:('harddisk', 'network', 'cdrom') <=> lower($DefaultBootDevice)
-        $type:('server', 'desktop') <=> lower($VmType)
         int($ha) <=> boolean($HighlyAvailable)  # Requires to be set as int
 
-        # Mask these out as i think they are going away
-        #$hypervisor:'kvm' <=> lower($HypervisorType)
-        #$mode:'fullvirtualized' <=> lower($OperationMode)
+        # Read-only references
+        $cluster <= cluster_name($HostClusterId)
+        $template <= template_name($TemplateId)
+        $host <= host_name($RunningOnHost, $HostClusterId)
+        # XXX: syntax error in Select-VmPool. Bug?
+        #pool_id($pool) <= pool_name($PoolId)
 
-        # Readonly properties
+        # Read-only properties
         $id <= $VmId
+        $type <= lower($VmType)
         $created <= $CreationDate
         $status <= lower($Status)
         $session <= $Session
@@ -111,13 +114,9 @@ def setup_module(app):
         $username <= $CurrentUserName
         $logout <= $LastLogoutTime
         $time <= int($ElapsedTime)
-        $host <= host_name($RunningOnHost, $HostClusterId)
         $migrating <= host_name($MigratingToHost, $HostClusterId)
         #$applications <= $ApplicationList  # xxx: need to check format
         $port <= int($DisplayPort)
-        # XXX: syntax error in Select-VmPool. Bug?
-        #pool_id($pool) <= pool_name($PoolId)
-        $pool <= int($PoolId)
 
         # Searching
         parse_query($query) => $query [list]

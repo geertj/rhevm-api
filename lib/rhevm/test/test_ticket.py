@@ -23,7 +23,8 @@ class TestVmTicket(RhevmTest):
         # Create a VM
         vm = { 'name': 'test-%s' % random.randint(0, 1000000),
                'template': self.template,
-               'cluster': self.cluster }
+               'cluster': self.cluster,
+               'type': 'server' }
         body = yaml.dump(vm)
         headers['Content-Type'] = 'text/yaml'
         client.request('POST', '/api/vms', body=body, headers=headers)

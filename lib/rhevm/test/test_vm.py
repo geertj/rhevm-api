@@ -23,7 +23,8 @@ class TestVm(RhevmTest):
         headers['Content-Type'] = 'text/yaml'
         data = { 'name': 'test-%s' % random.randint(0, 1000000),
                  'template': self.template,
-                 'cluster': self.cluster }
+                 'cluster': self.cluster,
+                 'type': 'server' }
         body = yaml.dump(data)
         client.request('POST', '/api/vms', body=body, headers=headers)
         response = client.getresponse()
@@ -64,7 +65,7 @@ class TestVm(RhevmTest):
         response = client.getresponse()
         assert response.status == http.OK
         data = yaml.load(response.read())
-        assert len(data) > 1
+        assert len(data) > 0
         # Delete it
         client.request('DELETE', url.path, headers=headers)
         response = client.getresponse()
