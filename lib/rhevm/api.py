@@ -8,4 +8,5 @@
 
 from rest.proxy import ObjectProxy
 
+pool = None
 powershell = ObjectProxy()

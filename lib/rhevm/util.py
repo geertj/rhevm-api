@@ -6,8 +6,28 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
+import sys
 from rhevm.api import powershell
 from rhevm.query import QueryParser
+from rhevm.powershell import PowerShell
+
+
+def create_powershell(username, password, domain):
+    """Create a powershell object."""
+    powershell = PowerShell()
+    auth = { 'username': username, 'domain': domain, 'password': password }
+    if hasattr(sys, 'isapidllhandle'):
+        powershell.start(**auth)
+        powershell.execute('Login-User')
+    else:
+        powershell.start()
+        powershell.execute('Login-User %s' % create_cmdline(**auth))
+    result = powershell.execute('Get-Version')
+    version = tuple(map(int, (result[0][i] for i in (
+                        'Major', 'Minor', 'Build', 'Revision'))))
+    powershell.version = version
+    return powershell
+
 
 def cached(func):
     """Decorator that caches the result of a function."""

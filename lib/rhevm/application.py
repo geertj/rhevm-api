@@ -8,7 +8,9 @@
 
 from rest import Application
 import rhevm.api
+from rhevm.pool import Pool
 from rhevm.powershell import PowerShell
+from rhevm.util import create_powershell
 
 
 class RhevmApp(Application):
@@ -25,10 +27,9 @@ class RhevmApp(Application):
         self.load_module('rhevm.module.ticket')
 
     def respond(self):
-        powershell = PowerShell()
-        rhevm.api.powershell._register(powershell)
-        try:
-            return super(RhevmApp, self).respond()
-        finally:
-            rhevm.api.powershell._release()
-            powershell.close()
+        if not rhevm.api.pool:
+            rhevm.api.pool = Pool(PowerShell, create_powershell)
+        response = super(RhevmApp, self).respond()
+        rhevm.api.pool.put(rhevm.api.powershell._release())
+        rhevm.api.pool.maintenance()  # this is async
+        return response

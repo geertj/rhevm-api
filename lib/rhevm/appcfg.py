@@ -51,30 +51,11 @@ class RequireAuthentication(InputFilter):
         auth = { 'username': username, 'password': password,
                  'domain': domain }
         try:
-            # The procedure to authenticate to RHEV-M is different when we
-            # are running under IIS as compared to when we aren't.
-            # PowerShell uses threading. Under IIS, which uses thread
-            # impersonation, the access token of the current thread is not
-            # equal to the access token of the current process. PowerShell
-            # starts up new threads, and those threads will inherit the
-            # original ISS token not the impersonation token. So those
-            # threads end up with different credentials than the main
-            # threads. This makes PowerShell abort.  To fix this, we use
-            # CreateProcessAsUser.  Conveniently, the NETWORK SEVICE account
-            # has the privilege to use this call.
-            if hasattr(sys, 'isapidllhandle'):
-                powershell.start(**auth)
-                powershell.execute('Login-User')  # Uses SSPI
-            else:
-                powershell.start()
-                powershell.execute('Login-User %s' % create_cmdline(**auth))
+            powershell = rhevm.api.pool.get(auth)
         except (PowerShellError, WindowsError):
             headers = [('WWW-Authenticate', 'Basic realm=rhevm')]
             raise Error(http.UNAUTHORIZED, headers, reason='Could not logon.')
-        result = powershell.execute('Get-Version')
-        version = tuple(map(int, (result[0][i] for i in (
-                            'Major', 'Minor', 'Build', 'Revision'))))
-        powershell.version = version
+        rhevm.api.powershell._register(powershell)
         return input
 
 
