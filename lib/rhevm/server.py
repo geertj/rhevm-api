@@ -8,8 +8,10 @@
 
 import re
 import sys
+import os.path
 import logging
 import inspect
+import py_compile
 from optparse import OptionParser
 
 from rest import make_server
@@ -18,6 +20,11 @@ from rhevm.application import RhevmApp
 from isapi_wsgi import ISAPIThreadPoolHandler
 from isapi.install import (ISAPIParameters, ScriptMapParams,
                            VirtualDirParameters, HandleCommandLine)
+
+if hasattr(sys, 'isapidllhandle'):  # Do we run under IIS?
+    import isapi_config
+    if isapi_config.debug:
+        import win32traceutil
 
 
 re_listen = re.compile('([-A-Za-z0-9.]+):([0-9]+)')
@@ -64,11 +71,16 @@ def cmdline():
 
 
 def __ExtensionFactory__():
-    _setup_logging(True)
+    _setup_logging(isapi_config.debug)
     return ISAPIThreadPoolHandler(RhevmApp)
 
 
 def isapi():
+    parser = OptionParser()
+    parser.add_option('-d', '--debug', action='store_true')
+    parser.set_default('debug', False)
+    opts, args = parser.parse_args()
+    sys.argv[1:] = args
     params = ISAPIParameters()
     sm = ScriptMapParams(Extension='*', Flags=0)
     vd = VirtualDirParameters(Name='api', Description='RHEVManagerApi',
@@ -79,3 +91,9 @@ def isapi():
     # to override the default.
     fname = inspect.getfile(sys.modules[__name__])
     HandleCommandLine(params, conf_module_name=fname)
+    config = os.path.join(os.path.split(fname)[0], 'isapi_config.py')
+    fout = file(config, 'w')
+    fout.write('## This file is auto-generated and will be overwritten\n')
+    fout.write('debug = %s\n' % opts.debug)
+    fout.close()
+    py_compile.compile(config)
