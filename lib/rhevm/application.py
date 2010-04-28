@@ -12,6 +12,8 @@ from rhevm.pool import Pool
 from rhevm.powershell import PowerShell
 from rhevm.util import create_powershell
 
+rhevm.api.pool = Pool(PowerShell, create_powershell)
+
 
 class RhevmApp(Application):
     """The RHEVM API application."""
@@ -26,10 +28,13 @@ class RhevmApp(Application):
         self.load_module('rhevm.module.disk')
         self.load_module('rhevm.module.ticket')
 
-    def respond(self):
-        if not rhevm.api.pool:
-            rhevm.api.pool = Pool(PowerShell, create_powershell)
-        response = super(RhevmApp, self).respond()
-        rhevm.api.pool.put(rhevm.api.powershell._release())
+    def close(self):
+        powershell = rhevm.api.powershell._release()
+        if powershell:
+            rhevm.api.pool.put(powershell)
         rhevm.api.pool.maintenance()  # this is async
-        return response
+
+    @classmethod
+    def shutdown(cls):
+        if rhevm.api.pool:
+            rhevm.api.pool.clear()

@@ -197,7 +197,7 @@ class PowerShell(object):
                 state.property = name
         return error
 
-    def close(self):
+    def terminate(self):
         """Close the powershell process."""
         if not self.child:
             return

@@ -68,11 +68,25 @@ def cmdline():
         server.serve_forever()
     except KeyboardInterrupt:
         pass
+    finally:
+        server.shutdown()
+
+
+class RhevmExtension(ISAPIThreadPoolHandler):
+    """ISAPI Extension that uses isapi_wsgi to run a WSGI application under
+    IIS."""
+
+    def __init__(self):
+        _setup_logging(isapi_config.debug)
+        ISAPIThreadPoolHandler.__init__(self, RhevmApp)
+
+    def TerminateExtension(self, status):
+        self.rootapp.shutdown()
+        ISAPIThreadPoolHandler.TerminateExtension(self, status)
 
 
 def __ExtensionFactory__():
-    _setup_logging(isapi_config.debug)
-    return ISAPIThreadPoolHandler(RhevmApp)
+    return RhevmExtension()
 
 
 def isapi():

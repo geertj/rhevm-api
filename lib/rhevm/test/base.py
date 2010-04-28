@@ -114,7 +114,7 @@ class RhevmTest(object):
     def tearDown(self):
         self.client.close()
         if self.powershell:
-            self.powershell.close()
+            self.powershell.terminate()
         if self.server:
             self.server.shutdown()
         if self.thread:

@@ -52,6 +52,24 @@ class Pool(object):
         instance.last_time = time.time()
         self._add_instance(instance.args, instance)
 
+    def clear(self):
+        """Clear the pool."""
+        terminate = []
+        self._lock.acquire()
+        try:
+            for key in self._pool:
+                terminate += self._pool[key][1]
+            self._pool.clear()
+            if self._thread:
+                self._thread.join()
+        finally:
+            self._lock.release()
+        for inst in terminate:
+            self._terminate_instance(inst)
+        if terminate:
+            self.logger.debug('Cleared %d instances of <%s> at user request'
+                              % (len(terminate), self._get_type()))
+
     def size(self):
         """Return the size of the pool."""
         size = 0
