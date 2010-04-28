@@ -9,7 +9,7 @@
 import sys
 from rhevm.api import powershell
 from rhevm.query import QueryParser
-from rhevm.powershell import PowerShell
+from rhevm.powershell import PowerShell, escape
 
 
 def create_powershell(username, password, domain):
@@ -44,7 +44,7 @@ def cached(func):
 def create_filter(**kwargs):
     conditions = ['1']
     for key in kwargs:
-        conditions.append('$_.%s -eq "%s"' % (key, kwargs[key]))
+        conditions.append('$_.%s -eq %s' % (key, escape(kwargs[key])))
     filter = '? { %s }' % ' -and '.join(conditions)
     return filter
 
@@ -60,7 +60,7 @@ def create_cmdline(**kwargs):
             # XXX: ugly hack:
             arguments.append('-%s %s' % (key, value))
         else:
-            arguments.append('-%s "%s"' % (key, value))
+            arguments.append('-%s %s' % (key, escape(value)))
     cmdline = ' '.join(arguments)
     return cmdline
 
