@@ -44,7 +44,7 @@ def cached(func):
 def create_filter(**kwargs):
     conditions = ['1']
     for key in kwargs:
-        conditions.append('$_.%s -eq %s' % (key, escape(kwargs[key])))
+        conditions.append('$_.%s -eq %s' % (key, escape(str(kwargs[key]))))
     filter = '? { %s }' % ' -and '.join(conditions)
     return filter
 
@@ -60,7 +60,7 @@ def create_cmdline(**kwargs):
             # XXX: ugly hack:
             arguments.append('-%s %s' % (key, value))
         else:
-            arguments.append('-%s %s' % (key, escape(value)))
+            arguments.append('-%s %s' % (key, escape(str(value))))
     cmdline = ' '.join(arguments)
     return cmdline
 
