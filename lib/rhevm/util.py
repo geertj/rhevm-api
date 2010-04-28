@@ -64,6 +64,14 @@ def create_cmdline(**kwargs):
     cmdline = ' '.join(arguments)
     return cmdline
 
+def create_setattr(obj, **kwargs):
+    statements = []
+    for key in kwargs:
+        value = kwargs[key]
+        statements.append('$%s.%s = %s' % (obj, key, escape(str(value))))
+    statement = ';'.join(statements) + ';'
+    return statement
+
 @cached
 def cluster_id(name):
     """Return the cluster ID for a cluster name."""
@@ -148,6 +156,9 @@ def upper(s):
 
 def boolean(s):
     return s in ('True', 'true', True)
+
+def subif(s, ref, sub):
+    return sub if s == ref else s
 
 def equals(s, ref):
     return s == ref
