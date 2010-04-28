@@ -53,22 +53,19 @@ class Pool(object):
         self._add_instance(instance.args, instance)
 
     def clear(self):
-        """Clear the pool."""
+        """Clear the pool (NOT thread safe)."""
+        if self._thread:
+            self._thread.join()
         terminate = []
-        self._lock.acquire()
-        try:
-            for key in self._pool:
-                terminate += self._pool[key][1]
-            self._pool.clear()
-            if self._thread:
-                self._thread.join()
-        finally:
-            self._lock.release()
+        for key in self._pool:
+            terminate += self._pool[key][1]
+        self._pool.clear()
         for inst in terminate:
             self._terminate_instance(inst)
         if terminate:
-            self.logger.debug('Cleared %d instances of <%s> at user request'
-                              % (len(terminate), self._get_type()))
+            self.logger.debug('Cleared <%s> pool (%d instances)'
+                              % (self._get_type(), len(terminate)))
+        self._thread = None
 
     def size(self):
         """Return the size of the pool."""
