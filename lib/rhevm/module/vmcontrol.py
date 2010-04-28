@@ -26,18 +26,24 @@ class VmControlCollection(RhevmCollection):
         if len(result) != 1:
             return
         command = input.pop('command')
-        cmdline = create_cmdline(**input)
-        print 'input', repr(input)
-        print 'cmdline', repr(cmdline)
         if command == 'start':
-            powershell.execute('Start-Vm -VmObject $vm %s' % cmdline)
+            # XXX workaround for bug: Start-Vm does not honour -IsoFileName
+            if not 'RunAndPause' in input and 'IsoFileName' in input:
+                input['RunAndPause'] = True
+                iso = input.pop('IsoFileName')
+                cmdline = create_cmdline(**input)
+                powershell.execute('Start-Vm -VmObject $vm %s' % cmdline)
+                cmdline = create_cmdline(IsoFileName=iso)
+                powershell.execute('Mount-Disk -VmObject $vm %s' % cmdline)
+            powershell.execute('Start-Vm -VmObject $vm')
         elif command == 'stop':
-            powershell.execute('Stop-Vm -VmObject $vm %s' % cmdline)
+            powershell.execute('Stop-Vm -VmObject $vm')
         elif command == 'shutdown':
-            powershell.execute('Shutdown-Vm -VmObject $vm %s' % cmdline)
+            powershell.execute('Shutdown-Vm -VmObject $vm')
         elif command == 'suspend':
-            powershell.execute('Suspend-Vm -VmObject $vm %s' % cmdline)
+            powershell.execute('Suspend-Vm -VmObject $vm')
         elif command == 'migrate':
+            cmdline = create_cmdline(**input)
             powershell.execute('Migrate-Vm -VmObject $vm %s' % cmdline)
 
 
@@ -54,7 +60,7 @@ def setup_module(app):
         invert(boolean($pause)) => $RunAndPause [start]
         adjust($display:('vnc', 'spice')) => $DisplayType [start]
         invert(boolean($acpi)) => $AcpiDisable [start]
-        adjust($boot:('network', 'harddisk', 'cdrom')) => $BootDevice [start]
+        bootorder($boot) => $BootDevice [start]
         $cdrom => $IsoFileName [start]
         $floppy => $FloppyPath [start]
         host_id($host) => $DestinationHostId [start]

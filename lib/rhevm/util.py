@@ -171,3 +171,18 @@ def parse_query(s):
     parser = QueryParser()
     parsed = parser.parse(s)
     return parsed.tostring()
+
+def bootorder(s):
+    """Validate a boot order."""
+    order = ''
+    parts = s.split(',')
+    for part in parts:
+        if part == 'harddisk':
+            order += 'D'
+        elif part == 'cdrom':
+            order += 'C'
+        elif part == 'network':
+            order += 'N'
+        else:
+            raise ValueError, 'Invalid boot order.'
+    return order

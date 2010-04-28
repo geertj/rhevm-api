@@ -27,7 +27,7 @@ from rhevm.server import _setup_logging
 def local_only(func):
     """Decorator that skips a test if we're testing remotely."""
     def run_test(self):
-        if self.config.has_option('test', 'url'):
+        if 'url' in self.config:
             raise SkipTest, 'Test skipped in remote test mode.'
         func(self)
     run_test.__name__ = func.__name__
@@ -71,19 +71,16 @@ class RhevmTest(object):
         success = config.read(cfgfile)
         if cfgfile not in success:
             raise TestError, 'Could not read test config at %s.' % cfgfile
-        cls.config = config
+        cls.config = dict(config.items('test'))
         cls.datacenter = config.get('test', 'datacenter')
         cls.cluster = config.get('test', 'cluster')
         cls.template = config.get('test', 'template')
 
     def setUp(self):
-	if self.config.has_option('test', 'url'):
-	    url = self.config.get('test', 'url')
-	else:
-	    url = None	
-        username = self.config.get('test', 'username')
-        domain = self.config.get('test', 'domain')
-        password = self.config.get('test', 'password')
+        username = self.config['username']
+        domain = self.config['domain']
+        password = self.config['password']
+        url = self.config.get('url')
         if url:
             parsed = urlparse.urlparse(url)
             if ':' in parsed.netloc:

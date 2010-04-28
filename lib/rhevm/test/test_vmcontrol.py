@@ -128,3 +128,69 @@ class TestVmControl(RhevmTest):
         client.request('DELETE', vmpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
+
+    def test_boot_with_cdrom(self):
+        client = self.client
+        headers = self.headers
+        # Create a VM
+        vm = { 'name': 'test-%s' % random.randint(0, 1000000),
+               'template': self.config['template'],
+               'cluster': self.config['cluster'],
+               'type': 'server' }
+        body = yaml.dump(vm)
+        headers['Content-Type'] = 'text/yaml'
+        client.request('POST', '/api/vms', body=body, headers=headers)
+        response = client.getresponse()
+        assert response.status == http.CREATED
+        location = response.getheader('Location')
+        assert location
+        vmpath = urlparse(location).path
+        # Add a disk
+        diskpath = vmpath + '/disks'
+        disk = { 'size': 1,
+                 'allocation': 'sparse' }
+        body = yaml.dump(disk)
+        client.request('POST', diskpath, body=body, headers=headers)
+        response = client.getresponse()
+        assert response.status == http.CREATED
+        # Start it up with a live CD
+        ctrlpath = vmpath + '/control'
+        command = { 'command': 'start',
+                    'boot': 'cdrom,harddisk',
+                    'display': 'vnc',
+                    'cdrom': self.config['livecd'] }
+        body = yaml.dump(command)
+        client.request('POST', ctrlpath, body=body, headers=headers)
+        response = client.getresponse()
+        assert response.status == http.OK
+        # Wait max 2 minutes until the VM is launched
+        now = time.time()
+        while time.time() < now + 120:
+            client.request('GET', vmpath, headers=headers)
+            response = client.getresponse()
+            assert response.status == http.OK
+            data = yaml.load(response.read())
+            if data['status'] == 'up':
+                break
+            time.sleep(10)
+        # Stop it
+        command = { 'command': 'stop' }
+        body = yaml.dump(command)
+        client.request('POST', ctrlpath, body=body, headers=headers)
+        response = client.getresponse()
+        assert response.status == http.OK
+        # Wait until it is stopped
+        now = time.time()
+        while time.time() < now + 120:
+            client.request('GET', vmpath, headers=headers)
+            response = client.getresponse()
+            assert response.status == http.OK
+            data = yaml.load(response.read())
+            if data['status'] == 'down':
+                break
+            print 'state = %s, sleeping' % data['status']
+            time.sleep(10)
+        # Now delete it
+        client.request('DELETE', vmpath, headers=headers)
+        response = client.getresponse()
+        assert response.status == http.OK
