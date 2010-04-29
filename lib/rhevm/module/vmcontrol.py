@@ -35,7 +35,10 @@ class VmControlCollection(RhevmCollection):
                 powershell.execute('Start-Vm -VmObject $vm %s' % cmdline)
                 cmdline = create_cmdline(IsoFileName=iso)
                 powershell.execute('Mount-Disk -VmObject $vm %s' % cmdline)
-            powershell.execute('Start-Vm -VmObject $vm')
+                powershell.execute('Start-Vm -VmObject $vm')
+            else:
+                cmdline = create_cmdline(**input)
+                powershell.execute('Start-Vm -VmObject $vm %s' % cmdline)
         elif command == 'stop':
             powershell.execute('Stop-Vm -VmObject $vm')
         elif command == 'shutdown':
