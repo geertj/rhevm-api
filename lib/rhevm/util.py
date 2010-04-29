@@ -189,9 +189,9 @@ def bootorder(s):
     parts = s.split(',')
     for part in parts:
         if part == 'harddisk':
-            order += 'D'
-        elif part == 'cdrom':
             order += 'C'
+        elif part == 'cdrom':
+            order += 'D'
         elif part == 'network':
             order += 'N'
         else:
