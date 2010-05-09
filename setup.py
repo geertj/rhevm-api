@@ -85,8 +85,8 @@ setup(
     packages = ['rhevm', 'rhevm.module', 'rhevm.test'],
     test_suite = 'nose.collector',
     entry_points = { 'console_scripts': [
-            'rhevm-api-cmdline = rhevm.server:cmdline',
-            'rhevm-api-isapi = rhevm.server:isapi'] },
+            'rhevm-api-cmdline = rhevm.server:main',
+            'rhevm-api-isapi = rhevm.iis:main'] },
     install_requires = ['argproc >= 1.2', 'winpexpect >= 1.2',
                         'python-rest >= 1.2', 'pyyaml >= 3.09',
                         'isapi_wsgi >= 0.4.1'],

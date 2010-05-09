@@ -7,9 +7,26 @@
 # "AUTHORS" for a complete overview.
 
 import sys
+import logging
+
 from rhevm.api import powershell
 from rhevm.query import QueryParser
 from rhevm.powershell import PowerShell, escape
+
+
+def setup_logging(debug):
+    """Set up logging."""
+    if debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+    logger = logging.getLogger()
+    handler = logging.StreamHandler(sys.stdout)
+    format = '%(levelname)s [%(name)s] %(message)s'
+    formatter = logging.Formatter(format)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(level)
 
 
 def create_powershell(username, password, domain):
