@@ -88,6 +88,8 @@ def setup_module(app):
         $os <=> $OperatingSystem
         $monitors:int <=> int($NumOfMonitors)
         $cpus:int <=> int($NumOfCpus)
+        $sockets:int <=> int($NumOfSockets)
+        $cores:int <=> int($NumOfCpusPerSocket)
         host_id($defaulthost) <=> host_name($DefaultHost, $HostClusterId)
         $nice:int <=> int($NiceLevel)
         int($failback) <=> boolean($FailBack)
