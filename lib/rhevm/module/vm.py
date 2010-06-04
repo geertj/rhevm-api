@@ -86,6 +86,7 @@ def setup_module(app):
         $memory:int <=> int($MemorySize)
         $domain <=> $Domain
         $os <=> $OperatingSystem
+        adjust($display:('vnc', 'spice')) <=> $DisplayType
         $monitors:int <=> int($NumOfMonitors)
         $cpus:int <=> int($NumOfCpus)
         $sockets:int <=> int($NumOfSockets)
