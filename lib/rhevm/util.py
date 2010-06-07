@@ -194,6 +194,10 @@ def adjust(s):
         return 'VNC'
     elif s == 'spice':
         return 'Spice'
+    elif s == 'virtio':
+        return 'VirtIO'
+    elif s == 'ide':
+        return 'IDE'
 
 def parse_query(s):
     parser = QueryParser()

@@ -109,7 +109,7 @@ def setup_module(app):
         # Settable properties
         $usage:('system', 'data', 'shared', 'swap', 'temp')
                 <=> lower($DiskType)
-        $interface:('ide', 'virtio') <=> lower($DiskInterface)
+        adjust($interface:('ide', 'virtio')) <=> lower($DiskInterface)
         $allocation:('preallocated', 'sparse') <=> lower($VolumeType)
         $format:('cow', 'raw') => lower($VolumeFormat)
         int($propagate_errors) <=> equals($PropagateErrors, "Off")
