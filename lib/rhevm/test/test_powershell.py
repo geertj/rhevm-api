@@ -39,7 +39,6 @@ class TestPowerShell(RhevmTest):
     def test_multiple_entries(self):
         result = self.powershell.execute('Select-Event | '
                                          'Select-Object -First 10')
-        print 'RESULT', len(result)
         assert len(result) == 10
     
     @local_only
@@ -58,12 +57,13 @@ class TestPowerShell(RhevmTest):
 
     @local_only
     def test_continuation(self):
-        self.powershell.execute('$dc = Select-DataCenter'
-                                ' | Select-Object -First 1')
+        self.powershell.execute('Select-DataCenter | Select-Object -First 1'
+                                ' | Tee-Object -Variable dc')
         desc = 'long line that overflows for sure.' * 5
         self.powershell.execute('$dc.description = "%s"' % desc)
-        result = self.powershell.execute('Out-Host -InputObject $dc')
+        result = self.powershell.execute('$dc')
         assert len(result) == 1
+        print 'DESC!!!!!!!!!!!!!!', result[0]['Description']
         assert result[0]['Description'] == desc
 
     @local_only

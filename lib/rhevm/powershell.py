@@ -6,16 +6,15 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-import re
 import os
 import os.path
 import stat
 import logging
-import itertools
+from xml.etree import ElementTree as etree
 
+from rest.resource import Resource
 from winpexpect import winspawn, TIMEOUT, WindowsError
 from rhevm.error import Error
-from compat import namedtuple
 
 
 def escape(s):
@@ -56,146 +55,10 @@ class PowerShell(object):
         if st and stat.S_ISDIR(st.st_mode):
             newpath = os.path.join(syswow, 'WindowsPowerShell', 'v1.0')
             newpath += os.pathsep
-            newpath += os.environ['Path']
-            os.environ['Path'] = newpath
+            if newpath not in os.environ['Path']:
+                newpath += os.environ['Path']
+                os.environ['Path'] = newpath
         self.child = winspawn('powershell.exe -Command -', **args)
-
-    def _detect_short_form(self, output):
-        """INTERNAL detect if output is in short form."""
-        short = False
-        s_read_first_line, s_read_second_line = range(2)
-        state = s_read_first_line
-        for line in output:
-            if state == s_read_first_line:
-                if line and not line.isspace():
-                    state = s_read_second_line
-            elif state == s_read_second_line:
-                if line.startswith('-'):
-                    short = True
-                break
-        return short
-
-    def _parse_objects_short_form(self, output):
-        """INTERNAL: Parse a list of PowerShell objects (short form)."""
-        s_read_keys, s_skip_hyphens, s_read_values = range(3)
-        state = s_read_keys
-        for line in output:
-            if state == s_read_keys:
-                if line and not line.isspace():
-                    keys = line.strip().split()
-                    state = s_skip_hyphens
-            elif state == s_skip_hyphens:
-                assert line.startswith('-')
-                state = s_read_values
-            elif state == s_read_values:
-                values = line.strip().split()
-        if state != s_read_values:
-            raise ParseError
-        if len(keys) != len(values):
-            raise ParseError
-        object = dict(zip(keys, values))
-        return [object]
-
-    _re_key_value = re.compile('\s*(?P<key>[a-zA-Z_][a-zA-Z0-9_]*)'
-                               '(\s+:)?\s+(?P<value>.*)$')
-    _re_nested_object = re.compile('Class Name: (.*)')
-    _re_continuation = re.compile('\s+(?P<value>[^\s].*)$')
-
-    def _parse_objects_long_form(self, output):
-        """INTERNAL: Parse a list of PowerShell objects."""
-        # PowerShell output was not made for parsing... What we have below
-        # should work reasonably well, but it's not pretty.
-        result = [];
-        state = namedtuple('state', ('obstack', 'indent', 'lastkey',
-                                     'lastvaluepos'))
-        state.obstack = []
-        state.indent = []
-        for line in itertools.chain(output, [None]):  # Mark End of Input
-            if not line or line.isspace():
-                if state.obstack:
-                    result.append(state.obstack[0])
-                    del state.obstack[:]
-                    del state.indent[:]
-                continue
-            match = self._re_continuation.match(line)
-            if match and state.lastkey and \
-                    match.start('value') == state.lastvaluepos:
-                state.obstack[-1][state.lastkey] += match.group('value')
-                continue
-            match = self._re_key_value.match(line)
-            if not match:
-                # XXX: there appears to be no way to match continuations
-                # in nested sub objects... For now ignore the continuation.
-                #raise ParseError, 'Key/value regex did not match.'
-                continue
-            level = match.start('key')
-            if not state.obstack:
-                state.obstack.append({})
-                state.indent.append(level)
-            if level != state.indent[-1]:
-                for ix,lvl in enumerate(state.indent):
-                    if lvl == level:
-                        break
-                else:
-                    raise ParseError, 'Unknow indent level.'
-                npop = len(state.indent) - ix - 1
-                for i in range(npop):
-                    state.obstack.pop()
-                    state.indent.pop()
-            key = match.group('key')
-            value = match.group('value')
-            if self._re_nested_object.match(value):
-                nested = {}
-                state.obstack[-1][key] = nested
-                state.obstack.append(nested)
-                state.indent.append(match.start('value'))
-                state.lastvaluepos = None
-            elif not value:
-                state.obstack[-1][key] = None
-                state.lastvaluepos = None
-            else:
-                state.obstack[-1][key] = value
-                state.lastkey = key
-                state.lastvaluepos = match.start('value')
-        return result
-
-    _re_error_end_message = re.compile('At line:\d+')
-    _re_error_property = re.compile('\s+\+ (?P<name>[a-zA-Z_][a-zA-Z0-9_]*)'
-                                    '\s+:\s+(?P<value>.*)$')
-
-    def _parse_error(self, output):
-        """INTERNAL: Parse an error response."""
-        error = PowerShellError(message='', category='', id='')
-        s_read_message, s_read_properties = range(2)
-        state = namedtuple('state', ('state', 'property'))
-        state.state = s_read_message
-        state.property = None
-        for line in output:
-            if state.state == s_read_message:
-                if not line or line.isspace():
-                    continue
-                if self._re_error_end_message.match(line):
-                    state.state = s_read_properties
-                    continue
-                error.message += line
-            elif state.state == s_read_properties:
-                if not line or line.isspace():
-                    break
-                match = self._re_error_property.match(line)
-                if match:
-                    name = match.group('name')
-                    value = match.group('value')
-                elif state.property:
-                    name = state.property
-                    value = line.lstrip()
-                else:
-                    continue
-                if name == 'CategoryInfo':
-                    error.category += value
-                elif name == 'FullyQualifiedErrorId':
-                    error.id += value
-                state.property = name
-        return error
 
     def terminate(self):
         """Close the powershell process."""
@@ -208,35 +71,106 @@ class PowerShell(object):
             self.child.terminate()
         self.child = None
 
+    def _convert_xml_node(self, node):
+        """INTERNAL: convert a single XML node to a Resource."""
+        type = node.attrib['Type']
+        if type in ('System.Int32', 'System.Int64'):
+            return int(node.text)
+        elif type == 'System.Boolean':
+            return node.text == 'True'
+        elif type == 'System.String':
+            return node.text
+        elif type == 'System.Version':
+            # Why isn't this done automatically??
+            parts = map(int, node.text.split('.'))
+            items = zip(('Major', 'Minor', 'Build', 'Revision'), parts)
+            resource = Resource('version', items)
+            return resource
+        elif type.startswith('System.'):
+            return node.text
+        elif type.startswith('RhevmCmd.'):
+            resource = Resource(type[12:].lower())
+            for child in node:
+                resource[child.attrib['Name']] = self._convert_xml_node(child)
+            return resource
+        elif type.startswith('VdcDAL.'):
+            return self._convert_xml_node(node[0])
+        elif type.endswith('[]'):
+            result = []
+            for child in node:
+                result.append(self._convert_xml_node(child))
+            return result
+        elif type:
+            raise ParseError, 'Unknown type: %s' % type
+
+    def _parse_objects(self, output):
+        """INTERNAL: Parse output of "ConvertTo-XML"."""
+        xml = etree.fromstring(output)
+        assert xml.tag == 'Objects'
+        type = xml[0].attrib.get('Type')
+        if type == 'System.Object[]' or type is None:
+            xml = xml[0]
+        result = []
+        for child in xml:
+            result.append(self._convert_xml_node(child))
+        return result
+
+    def _parse_error(self, output):
+        """INTERNAL: Parse an XML formatted exception."""
+        xml = etree.fromstring(output)
+        error = PowerShellError()
+        for node in xml[0]:
+            name = node.attrib['Name']
+            if name == 'Exception':
+                error.message = node.text
+            elif name == 'CategoryInfo':
+                error.category = node.text
+            elif name == 'FullyQualifiedErrorId':
+                error.id = node.text
+        return error
+
     def execute(self, command):
         """Execute a command. Return a string, a list of objects, or
         raises an exception."""
         if self.child is None:
             self.start()
-        script = 'Write-Host "START-OF-OUTPUT-MARKER";'
-        script += '%s;' % command 
-        script += 'Write-Host "END-OF-OUTPUT-MARKER $?";'
+        script = """
+            Write-Host "START-OF-OUTPUT-MARKER";
+            try {
+                $result = Invoke-Expression '%s';
+                ConvertTo-XML $result -As String -Depth 5;
+                $success = 1;
+            } catch {
+                # There's a circular reference in $_...
+                ConvertTo-XML $_ -As String -Depth 1;
+                $success = 0;
+            }
+            Write-Host "END-OF-OUTPUT-MARKER $success";
+        """ % command
         self.logger.debug('Executing powershell: %s' % script)
         self.child.sendline(script)
         try:
             # Write-Host does not seem to be generating a \r ...
             self.child.expect('START-OF-OUTPUT-MARKER\r?\n')
-            self.child.expect('END-OF-OUTPUT-MARKER (True|False)\r?\n')
+            self.child.expect('END-OF-OUTPUT-MARKER (1|0)\r?\n')
         except TIMEOUT:
             self.logger.debug('PExpect state: %s' % str(self.child))
             raise ParseError, 'TIMEOUT in PowerShell command.'
-        status = bool(self.child.match.group(1) == 'True')
+        status = self.child.match.group(1) == '1'
         output = self.child.before
-        output = output.splitlines()
+        p1 = output.find('<?xml')
+        if p1 == -1:
+            p1 = len(output)
+        textout = output[:p1]
+        xmlout = output[p1:]
+        xmlout = xmlout.replace('\r\n', '')  # line wrapping (sigh...)
+        print 'xml', xmlout
         if status:
-            if output and not output[0]:
-                if self._detect_short_form(output):
-                    result = self._parse_objects_short_form(output)
-                else:
-                    result = self._parse_objects_long_form(output)
+            if xmlout:
+                objects = self._parse_objects(xmlout)
+                return objects
             else:
-                result = output
+                return textout
         else:
-            error = self._parse_error(output)
+            error = self._parse_error(xmlout)
             raise error
-        return result
