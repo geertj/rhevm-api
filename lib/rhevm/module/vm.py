@@ -6,11 +6,9 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from argproc import ArgumentProcessor
 from rest.api import mapper
 from rhevm.api import powershell
 from rhevm.util import *
-from rhevm.appcfg import StructuredInput, StructuredOutput
 from rhevm.collection import RhevmCollection
 from rhevm.powershell import escape
 
@@ -19,7 +17,57 @@ class VmCollection(RhevmCollection):
     """REST API for managing virtual machines."""
 
     name = 'vms'
-    objectname = 'vm'
+
+    entity_transform = """
+        # Properties required for creation
+        $name => $Name * @create
+        cluster_id($cluster) => $HostClusterId * @create
+        template_object($template) => $TemplateObject * @create
+        $type:('server', 'desktop') => $VmType * @create
+
+        # Read-write properties
+        $name <=> $Name
+        $description <=> $Description
+        $memory:int <=> int($MemorySize)
+        $domain <=> $Domain
+        $os <=> $OperatingSystem
+        adjust($display:('vnc', 'spice')) <=> $DisplayType
+        $monitors:int <=> int($NumOfMonitors)
+        $cpus:int <=> int($NumOfCpus)
+        $sockets:int <=> int($NumOfSockets)
+        $cores:int <=> int($NumOfCpusPerSocket)
+        host_id($defaulthost) <=> host_name($DefaultHost, $HostClusterId)
+        $nice:int <=> int($NiceLevel)
+        int($failback) <=> boolean($FailBack)
+        $boot:('harddisk', 'network', 'cdrom') <=> lower($DefaultBootDevice)
+        int($ha) <=> boolean($HighlyAvailable)  # Requires to be set as int
+
+        # Read-only references
+        $cluster <= cluster_name($HostClusterId)
+        $template <= template_name($TemplateId)
+        $host <= host_name($RunningOnHost, $HostClusterId)
+        $pool <= pool_name($PoolId) @!rhev21
+
+        # Read-only properties
+        $id <= $VmId
+        $type <= lower($VmType)
+        $created <= $CreationDate
+        $status <= lower($Status)
+        $session <= $Session
+        $ip <= $Ip
+        $hostname <= $HostName
+        $uptime <= $UpTime
+        $login <= $LoginTime
+        $username <= $CurrentUserName
+        $logout <= $LastLogoutTime
+        $time <= int($ElapsedTime)
+        $migrating <= host_name($MigratingToHost, $HostClusterId)
+        #$applications <= $ApplicationList  # xxx: need to check format
+        $port <= int($DisplayPort)
+
+        # Searching
+        parse_query($query) => $query @list
+        """
 
     def show(self, id):
         filter = create_filter(vmid=id)
@@ -37,6 +85,7 @@ class VmCollection(RhevmCollection):
 
     def create(self, input):
         props = ('Name', 'TemplateObject', 'HostClusterId', 'VmType')
+        print 'INPUT', input
         args = dict(((prop, input.pop(prop)) for prop in props))
         cmdline = create_cmdline(**args)
         result = powershell.execute('$vm = Add-VM %s' % cmdline)
@@ -72,57 +121,4 @@ class VmCollection(RhevmCollection):
 
 
 def setup_module(app):
-    proc = ArgumentProcessor()
-    proc.rules("""
-        # Properties required for creation
-        $name* => $Name [create]
-        cluster_id($cluster)* => $HostClusterId [create]
-        template_object($template)* => $TemplateObject [create]
-        $type:('server', 'desktop')* => $VmType [create]
-
-        # Read-write properties
-        $name <=> $Name
-        $description <=> $Description
-        $memory:int <=> int($MemorySize)
-        $domain <=> $Domain
-        $os <=> $OperatingSystem
-        adjust($display:('vnc', 'spice')) <=> $DisplayType
-        $monitors:int <=> int($NumOfMonitors)
-        $cpus:int <=> int($NumOfCpus)
-        $sockets:int <=> int($NumOfSockets)
-        $cores:int <=> int($NumOfCpusPerSocket)
-        host_id($defaulthost) <=> host_name($DefaultHost, $HostClusterId)
-        $nice:int <=> int($NiceLevel)
-        int($failback) <=> boolean($FailBack)
-        $boot:('harddisk', 'network', 'cdrom') <=> lower($DefaultBootDevice)
-        int($ha) <=> boolean($HighlyAvailable)  # Requires to be set as int
-
-        # Read-only references
-        $cluster <= cluster_name($HostClusterId)
-        $template <= template_name($TemplateId)
-        $host <= host_name($RunningOnHost, $HostClusterId)
-        $pool <= pool_name($PoolId) [!rhev21]
-
-        # Read-only properties
-        $id <= $VmId
-        $type <= lower($VmType)
-        $created <= $CreationDate
-        $status <= lower($Status)
-        $session <= $Session
-        $ip <= $Ip
-        $hostname <= $HostName
-        $uptime <= $UpTime
-        $login <= $LoginTime
-        $username <= $CurrentUserName
-        $logout <= $LastLogoutTime
-        $time <= int($ElapsedTime)
-        $migrating <= host_name($MigratingToHost, $HostClusterId)
-        #$applications <= $ApplicationList  # xxx: need to check format
-        $port <= int($DisplayPort)
-
-        # Searching
-        parse_query($query) => $query [list]
-        """)
-    app.add_input_filter(StructuredInput(proc), collection='vms')
-    app.add_output_filter(StructuredOutput(proc), collection='vms')
     app.add_collection(VmCollection())

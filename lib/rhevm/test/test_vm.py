@@ -36,7 +36,9 @@ class TestVm(RhevmTest):
         client.request('GET', '/api/vms', headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
-        assert response.getheader('Content-Type') == 'text/yaml'
+        ctype = response.getheader('Content-Type')
+        ctype = http.parse_content_type(ctype)
+        assert ctype[:2] == ('text', 'yaml')
         result = yaml.load(response.read())
         for entry in result:
             if entry['name'] == data['name']:
@@ -55,7 +57,9 @@ class TestVm(RhevmTest):
         client.request('GET', url.path, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
-        assert response.getheader('Content-Type') == 'text/yaml'
+        ctype = response.getheader('Content-Type')
+        ctype = http.parse_content_type(ctype)
+        assert ctype[:2] == ('text', 'yaml')
         data = yaml.load(response.read())
         assert data['memory'] == 512
         assert data['description'] == 'My new virtual machine'
@@ -69,7 +73,7 @@ class TestVm(RhevmTest):
         # Delete it
         client.request('DELETE', url.path, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.NO_CONTENT
         client.request('DELETE', url.path, headers=headers)
         response = client.getresponse()
         assert response.status == http.NOT_FOUND
