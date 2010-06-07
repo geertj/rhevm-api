@@ -21,7 +21,7 @@ from nose import SkipTest
 from rest import http
 from rest.server import make_server
 from rhevm import *
-from rhevm.server import _setup_logging
+from rhevm.util import setup_logging
 
 
 def local_only(func):
@@ -56,7 +56,7 @@ class RhevmTest(object):
 
     @classmethod
     def setUpClass(cls):
-	_setup_logging(True)
+	setup_logging(True)
         myfile = os.path.abspath(__file__)
         dir, tail = os.path.split(myfile)
         while tail:
