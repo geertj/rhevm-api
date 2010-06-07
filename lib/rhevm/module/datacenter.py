@@ -6,11 +6,9 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from argproc import ArgumentProcessor
 from rest.api import mapper
 from rhevm.api import powershell
 from rhevm.util import *
-from rhevm.appcfg import StructuredInput, StructuredOutput
 from rhevm.collection import RhevmCollection
 
 
@@ -18,7 +16,14 @@ class DataCenterCollection(RhevmCollection):
     """REST API for managing datacenters."""
 
     name = 'datacenters'
-    objectname = 'datacenter'
+
+    entity_transform = """
+        $id <= $DataCenterId
+        $name <=> $Name *
+        $type <=> $Type *
+        $description <=> $Description
+        $status <= $Status
+    """
 
     def show(self, id):
         filter = create_filter(datacenterid=id)
@@ -78,14 +83,4 @@ class DataCenterCollection(RhevmCollection):
 
 
 def setup_module(app):
-    proc = ArgumentProcessor()
-    proc.rules("""
-        $id <= $DataCenterId
-        $name * <=> $Name
-        $description <=> $Description
-        $type * <=> $Type
-        $status <= $Status
-    """)
-    app.add_input_filter(StructuredInput(proc), collection='datacenters')
-    app.add_output_filter(StructuredOutput(proc), collection='datacenters')
     app.add_collection(DataCenterCollection())
