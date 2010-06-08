@@ -8,6 +8,7 @@
 
 import os
 import os.path
+import re
 import stat
 import logging
 from xml.etree import ElementTree as etree
@@ -129,6 +130,15 @@ class PowerShell(object):
                 error.id = node.text
         return error
 
+    re_comment = re.compile('#.*$', re.M)
+    re_whitespace = re.compile('\s+')
+
+    def _compact(self, command):
+        """INTERNAL: compat a powershell command (for logging)."""
+        command = self.re_comment.sub('', command)
+        command = self.re_whitespace.sub(' ', command)
+        return command
+        
     def execute(self, command):
         """Execute a command. Return a string, a list of objects, or
         raises an exception."""
@@ -147,6 +157,7 @@ class PowerShell(object):
             }
             Write-Host "END-OF-OUTPUT-MARKER $success";
         """ % command
+        script = self._compact(script)
         self.logger.debug('Executing powershell: %s' % script)
         self.child.sendline(script)
         try:
