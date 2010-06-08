@@ -17,6 +17,8 @@ class NicCollection(RhevmCollection):
 
     name = 'nics'
     entity_transform = """
+        $!type => $!type
+        $!type <= "nic"
         # There's an inconsitency between command line argument names
         # and object properties...
         $type:('e1000', 'pv', 'rtl8139') => $InterfaceType * @create

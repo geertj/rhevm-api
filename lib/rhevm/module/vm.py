@@ -17,8 +17,8 @@ class VmCollection(RhevmCollection):
     """REST API for managing virtual machines."""
 
     name = 'vms'
-
     entity_transform = """
+        $!type <=> $!type
         # Properties required for creation
         $name => $Name * @create
         cluster_id($cluster) => $HostClusterId * @create

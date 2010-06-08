@@ -17,6 +17,7 @@ class TagCollection(RhevmCollection):
 
     name = 'tags'
     entity_transform = """
+        $!type <=> $!type
         int($id) <=> int($TagID) @!attach_to_object
         int($id) => $Id @attach_to_object
         $name <=> $Name

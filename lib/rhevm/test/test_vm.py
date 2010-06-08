@@ -38,7 +38,8 @@ class TestVm(RhevmTest):
         assert response.status == http.OK
         ctype = response.getheader('Content-Type')
         ctype = http.parse_content_type(ctype)
-        assert ctype[:2] == ('text', 'yaml')
+        ctype_requested = http.parse_content_type(self.headers['Accept'])
+        assert ctype[:2] == ctype_requested[:2]
         result = yaml.load(response.read())
         for entry in result:
             if entry['name'] == data['name']:
@@ -59,7 +60,7 @@ class TestVm(RhevmTest):
         assert response.status == http.OK
         ctype = response.getheader('Content-Type')
         ctype = http.parse_content_type(ctype)
-        assert ctype[:2] == ('text', 'yaml')
+        assert ctype[:2] == ctype_requested[:2]
         data = yaml.load(response.read())
         assert data['memory'] == 512
         assert data['description'] == 'My new virtual machine'

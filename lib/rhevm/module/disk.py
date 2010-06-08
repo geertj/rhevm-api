@@ -16,8 +16,9 @@ class DiskCollection(RhevmCollection):
     """REST API for managing a VM's disks."""
 
     name = 'disks'
-
     entity_transform = """
+        $!type => "image"
+        $!type <= "disk"
         # This parameters is different on the command line than for object
         # properties.
         $size:int => $DiskSize @create

@@ -17,6 +17,7 @@ class VmTicketCollection(RhevmCollection):
 
     name = 'ticket'
     entity_transform = """
+        $!type => $!type
         $ticket => $Ticket
         $valid => $ValidTime
         """

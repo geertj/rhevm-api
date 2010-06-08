@@ -16,8 +16,8 @@ class VmControlCollection(RhevmCollection):
     """REST API for controlling a VM's state."""
 
     name = 'vmcontrol'
-
     entity_transform = """
+        $!type => $!type
         $command:('start', 'stop', 'shutdown', 'suspend', 'migrate')
                 => $command *
 
@@ -36,6 +36,7 @@ class VmControlCollection(RhevmCollection):
         # Move-Vm parameters
         host_id($host) => $DestHostId @migrate
         """
+
     def create(self, vm, input):
         filter = create_filter(vmid=vm)
         result = powershell.execute('Select-Vm | %s'

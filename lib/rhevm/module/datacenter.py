@@ -16,8 +16,8 @@ class DataCenterCollection(RhevmCollection):
     """REST API for managing datacenters."""
 
     name = 'datacenters'
-
     entity_transform = """
+        $!type <=> $!type
         $id <= $DataCenterId
         $name <=> $Name *
         $type <=> $Type *

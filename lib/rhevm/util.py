@@ -61,6 +61,8 @@ def cached(func):
 def create_filter(**kwargs):
     conditions = ['1']
     for key in kwargs:
+        if key.startswith('!'):
+            continue
         conditions.append('$_.%s -eq %s' % (key, escape(str(kwargs[key]))))
     filter = '? { %s }' % ' -and '.join(conditions)
     return filter
@@ -69,7 +71,9 @@ def create_cmdline(**kwargs):
     arguments = []
     for key in kwargs:
         value = kwargs[key]
-        if value in (None, False):
+        if key.startswith('!'):
+            continue
+        elif value in (None, False):
             pass
         elif value is True:
             arguments.append('-%s' % key)
@@ -84,6 +88,8 @@ def create_cmdline(**kwargs):
 def create_setattr(obj, **kwargs):
     statements = []
     for key in kwargs:
+        if key.startswith('!'):
+            continue
         value = kwargs[key]
         statements.append('$%s.%s = %s' % (obj, key, escape(str(value))))
     statement = ';'.join(statements) + ';'
