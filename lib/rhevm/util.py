@@ -186,8 +186,8 @@ def upper(s):
 def boolean(s):
     return s in ('True', 'true', True)
 
-def subif(s, ref, sub):
-    return sub if s == ref else s
+def subif(s, ref, sub, alt=None):
+    return sub if s == ref else (s if alt is None else alt)
 
 def equals(s, ref):
     return s == ref
@@ -210,6 +210,14 @@ def adjust(s):
         return 'VirtIO'
     elif s == 'ide':
         return 'IDE'
+    elif s == 'preallocated':
+        return 'Preallocated'
+    elif s == 'sparse':
+        return 'Sparse'
+    elif s == 'cow':
+        return 'COW'
+    elif s == 'raw':
+        return 'RAW'
 
 def parse_query(s):
     parser = QueryParser()

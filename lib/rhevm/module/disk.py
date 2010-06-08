@@ -6,7 +6,8 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from rest.api import mapper
+from rest import http
+from rest.api import mapper, request, response
 from rhevm.api import powershell
 from rhevm.util import *
 from rhevm.collection import RhevmCollection
@@ -17,7 +18,7 @@ class DiskCollection(RhevmCollection):
 
     name = 'disks'
     entity_transform = """
-        $!type => "image"
+        $!type => $!type
         $!type <= "disk"
         # This parameters is different on the command line than for object
         # properties.
@@ -28,8 +29,8 @@ class DiskCollection(RhevmCollection):
         $usage:('system', 'data', 'shared', 'swap', 'temp')
                 <=> lower($DiskType)
         adjust($interface:('ide', 'virtio')) <=> lower($DiskInterface)
-        $allocation:('preallocated', 'sparse') <=> lower($VolumeType)
-        $format:('cow', 'raw') => lower($VolumeFormat)
+        adjust($allocation:('preallocated', 'sparse')) <=> lower($VolumeType)
+        adjust($format:('cow', 'raw')) => lower($VolumeFormat)
         int($propagate_errors) <=> equals($PropagateErrors, "Off")
         int($wipe_after_delete) <=> boolean($WipeAfterDelete)
 
@@ -79,22 +80,31 @@ class DiskCollection(RhevmCollection):
         old = set((disk['SnapshotId'] for disk in result))
         create = { 'DiskSize': input.pop('DiskSize') }
         cmdline = create_cmdline(**create)
-        updates = []
-        for key in input:
-            updates.append('$disk.%s = "%s"' % (key, input[key]))
-        updates = '; '.join(updates)
+        updates = create_setattr('disk', **input)
         powershell.execute('$disk = New-Disk %s; %s' % (cmdline, updates))
         if powershell.version >= (2, 2):
-            result = powershell.execute('Add-Disk -DiskObject $disk'
-                                        ' -VmObject $vm')
+            vmref = '-VmObject $vm'
         else:
-            result = powershell.execute('Add-Disk -DiskObject $disk'
-                                        ' -VmId $vm.VmId')
+            vmref = '-VmId $vm.VmId'
+        if input.get('VolumeType') == 'Preallocated':
+            result = powershell.execute('Add-Disk -DiskObject $disk %s -Async'
+                                        % vmref)
+            tasks = powershell.execute('Get-LastCommandTasks')
+            async = True
+        else:
+            result = powershell.execute('Add-Disk -DiskObject $disk %s'
+                                        % vmref)
+            async = False
         result = powershell.execute('$vm.GetDiskImages()')
         new = set((disk['SnapshotId'] for disk in result))
         diskid = (new - old).pop()
         filter = create_filter(snapshotid=diskid)
         result = powershell.execute('$vm.GetDiskImages() | %s' % filter)
+        if async:
+            response.status = http.ACCEPTED
+            url = mapper.url_for(collection='tasks', action='show',
+                                 id=tasks[0]['TaskId'])
+            response.set_header('Link', '<%s>; rel=status' % url)
         url = mapper.url_for(collection=self.name, action='show', 
                              id=result[0]['SnapshotId'], vm=vm)
         return url, result[0]
