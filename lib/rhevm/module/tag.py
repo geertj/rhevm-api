@@ -6,11 +6,9 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from argproc import ArgumentProcessor
 from rest.api import mapper
 from rhevm.api import powershell
 from rhevm.util import *
-from rhevm.appcfg import StructuredInput, StructuredOutput
 from rhevm.collection import RhevmCollection
 
 
@@ -18,7 +16,14 @@ class TagCollection(RhevmCollection):
     """REST API for managing tags."""
 
     name = 'tags'
-    objectname = 'tag'
+    entity_transform = """
+        int($id) <=> int($TagID) [!attach_to_object]
+        int($id) => $Id [attach_to_object]
+        $name <=> $Name
+        $description <=> $Description
+        boolean($readonly) <=> boolean($ReadOnly)
+        int($parent) <=> subif(int($ParentId), -1, None)
+        """
 
     def show(self, id):
         cmdline = create_cmdline(Id=id)
@@ -116,15 +121,4 @@ def setup_module(app):
                   collection='tags', action='attach_to_object')
     app.add_route('/api/:type/:id/tags/:tag', method='DELETE',
                   collection='tags', action='detach_from_object')
-    proc = ArgumentProcessor()
-    proc.rules("""
-        int($id) <=> int($TagID) [!attach_to_object]
-        int($id) => $Id [attach_to_object]
-        $name <=> $Name
-        $description <=> $Description
-        boolean($readonly) <=> boolean($ReadOnly)
-        int($parent) <=> subif(int($ParentId), -1, None)
-    """)
-    app.add_input_filter(StructuredInput(proc), collection='tags')
-    app.add_output_filter(StructuredOutput(proc), collection='tags')
     app.add_collection(TagCollection())

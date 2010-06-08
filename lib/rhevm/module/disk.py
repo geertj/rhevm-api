@@ -6,11 +6,9 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from argproc import ArgumentProcessor
 from rest.api import mapper
 from rhevm.api import powershell
 from rhevm.util import *
-from rhevm.appcfg import StructuredInput, StructuredOutput
 from rhevm.collection import RhevmCollection
 
 
@@ -18,7 +16,31 @@ class DiskCollection(RhevmCollection):
     """REST API for managing a VM's disks."""
 
     name = 'disks'
-    objectname = 'disk'
+
+    entity_transform = """
+        # This parameters is different on the command line than for object
+        # properties.
+        $size:int => $DiskSize @create
+        $size <= int($SizeInGB)
+
+        # Settable properties
+        $usage:('system', 'data', 'shared', 'swap', 'temp')
+                <=> lower($DiskType)
+        adjust($interface:('ide', 'virtio')) <=> lower($DiskInterface)
+        $allocation:('preallocated', 'sparse') <=> lower($VolumeType)
+        $format:('cow', 'raw') => lower($VolumeFormat)
+        int($propagate_errors) <=> equals($PropagateErrors, "Off")
+        int($wipe_after_delete) <=> boolean($WipeAfterDelete)
+
+        # Read-only properties
+        $created <= $CreationDate
+        $modified <= $LastModified
+        $description <= $Description
+        $drive <= int($InternalDriveMapping)
+        $id <= $SnapshotId
+        $status <= upper($Status)
+        $boot <= boolean($Boot)
+        """
 
     def show(self, vm, id):
         filter = create_filter(vmid=vm)
@@ -99,31 +121,4 @@ def setup_module(app):
                   action='show')
     app.add_route('/api/vms/:vm/disks/:id', method='DELETE',
                   collection='disks', action='delete')
-    proc = ArgumentProcessor()
-    proc.rules("""
-        # This parameters is different on the command line than for object
-        # properties.
-        $size:int => $DiskSize [create]
-        $size <= int($SizeInGB)
-
-        # Settable properties
-        $usage:('system', 'data', 'shared', 'swap', 'temp')
-                <=> lower($DiskType)
-        adjust($interface:('ide', 'virtio')) <=> lower($DiskInterface)
-        $allocation:('preallocated', 'sparse') <=> lower($VolumeType)
-        $format:('cow', 'raw') => lower($VolumeFormat)
-        int($propagate_errors) <=> equals($PropagateErrors, "Off")
-        int($wipe_after_delete) <=> boolean($WipeAfterDelete)
-
-        # Read-only properties
-        $created <= $CreationDate
-        $modified <= $LastModified
-        $description <= $Description
-        $drive <= int($InternalDriveMapping)
-        $id <= $SnapshotId
-        $status <= upper($Status)
-        $boot <= boolean($Boot)
-    """)
-    app.add_input_filter(StructuredInput(proc), collection='disks')
-    app.add_output_filter(StructuredOutput(proc), collection='disks')
     app.add_collection(DiskCollection())

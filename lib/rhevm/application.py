@@ -23,11 +23,11 @@ class RhevmApp(Application):
         self.load_module('rhevm.appcfg')
         self.load_module('rhevm.module.datacenter')
         self.load_module('rhevm.module.vm')
-        #self.load_module('rhevm.module.vmcontrol')
-        #self.load_module('rhevm.module.nic')
-        #self.load_module('rhevm.module.disk')
-        #self.load_module('rhevm.module.ticket')
-        #self.load_module('rhevm.module.tag')
+        self.load_module('rhevm.module.vmcontrol')
+        self.load_module('rhevm.module.nic')
+        self.load_module('rhevm.module.disk')
+        self.load_module('rhevm.module.ticket')
+        self.load_module('rhevm.module.tag')
 
     def close(self):
         powershell = rhevm.api.powershell._release()

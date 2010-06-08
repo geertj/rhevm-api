@@ -157,7 +157,7 @@ def pool_id(name):
 @cached
 def pool_name(id):
     """Retur the pool name for a given ID."""
-    if id == '-1':
+    if id == -1:
         return None
     filter = create_filter(poolid=id)
     result =powershell.execute('Select-VmPool | %s' % filter)
@@ -166,9 +166,15 @@ def pool_name(id):
     return result[0]['Name']
 
 def lower(s):
+    # XXX: hack, function should not be called for an int
+    if isinstance(s, int):
+        return s
     return s.lower()
 
 def upper(s):
+    # XXX: hack, function should not be called for an int
+    if isinstance(s, int):
+        return s
     return s.upper()
 
 def boolean(s):

@@ -6,11 +6,9 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from argproc import ArgumentProcessor
 from rest.api import mapper
 from rhevm.api import powershell
 from rhevm.util import *
-from rhevm.appcfg import StructuredInput, StructuredOutput
 from rhevm.collection import RhevmCollection
 
 
@@ -18,8 +16,27 @@ class NicCollection(RhevmCollection):
     """REST API for managing a VM's network cards."""
 
     name = 'nics'
-    objectname = 'nic'
+    entity_transform = """
+        # There's an inconsitency between command line argument names
+        # and object properties...
+        $type:('e1000', 'pv', 'rtl8139') => $InterfaceType * @create
+        $name => $InterfaceName * @create
+        $network => $NetworkName * @create
+        $type:('e1000', 'pv', 'rtl8139')  <= $Type @create
+        $name <= $Name @create
+        $network <= $Network @create
 
+        $type:('e1000', 'pv', 'rtl8139') <=> $Type * @!create
+        $name <=> $Name * @!create
+        $network <=> $Network * @!create
+        $mac <=> $MacAddress
+
+        # Read-only properties
+        $gateway <= $Gateway
+        $subnet <= $Subnet
+        $address <= $Address
+        $id <= $Id
+        """
     def show(self, vm, id):
         filter = create_filter(vmid=vm)
         result = powershell.execute('Select-Vm | %s'
@@ -84,28 +101,4 @@ def setup_module(app):
                   action='show')
     app.add_route('/api/vms/:vm/nics/:id', method='DELETE', collection='nics',
                   action='delete')
-    proc = ArgumentProcessor()
-    proc.rules("""
-        # There's an inconsitency between command line argument names
-        # and object properties...
-        $type:('e1000', 'pv', 'rtl8139') * => $InterfaceType [create]
-        $name * => $InterfaceName [create]
-        $network * => $NetworkName [create]
-        $type:('e1000', 'pv', 'rtl8139')  <= $Type [create]
-        $name <= $Name [create]
-        $network <= $Network [create]
-
-        $type:('e1000', 'pv', 'rtl8139') * <=> $Type [!create]
-        $name * <=> $Name [!create]
-        $network * <=> $Network [!create]
-        $mac <=> $MacAddress
-
-        # Read-only properties
-        $gateway <= $Gateway
-        $subnet <= $Subnet
-        $address <= $Address
-        $id <= $Id
-    """)
-    app.add_input_filter(StructuredInput(proc), collection='nics')
-    app.add_output_filter(StructuredOutput(proc), collection='nics')
     app.add_collection(NicCollection())

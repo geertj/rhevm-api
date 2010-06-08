@@ -6,10 +6,8 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from argproc import ArgumentProcessor
 from rest.api import mapper
 from rhevm.api import powershell
-from rhevm.appcfg import StructuredInput, StructuredOutput
 from rhevm.collection import RhevmCollection
 from rhevm.util import create_filter, create_cmdline
 
@@ -18,6 +16,10 @@ class VmTicketCollection(RhevmCollection):
     """REST API for controlling a VM's state."""
 
     name = 'ticket'
+    entity_transform = """
+        $ticket => $Ticket
+        $valid => $ValidTime
+        """
 
     def create(self, vm, input):
         filter = create_filter(vmid=vm)
@@ -34,11 +36,4 @@ class VmTicketCollection(RhevmCollection):
 def setup_module(app):
     app.add_route('/api/vms/:vm/ticket', method='POST',
                   collection='ticket', action='create')
-    proc = ArgumentProcessor()
-    proc.rules("""
-        $ticket => $Ticket
-        $valid => $ValidTime
-    """)
-    app.add_input_filter(StructuredInput(proc), collection='ticket')
-    app.add_output_filter(StructuredOutput(proc), collection='ticket')
     app.add_collection(VmTicketCollection())

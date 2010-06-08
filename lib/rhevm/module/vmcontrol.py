@@ -6,11 +6,9 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
-from argproc import ArgumentProcessor
 from rest.api import response, mapper
 from rhevm.api import powershell
 from rhevm.util import *
-from rhevm.appcfg import StructuredInput, StructuredOutput
 from rhevm.collection import RhevmCollection
 
 
@@ -19,6 +17,25 @@ class VmControlCollection(RhevmCollection):
 
     name = 'vmcontrol'
 
+    entity_transform = """
+        $command:('start', 'stop', 'shutdown', 'suspend', 'migrate')
+                => $command *
+
+        # Start-Vm parameters
+        invert(boolean($hwaccel)) => $DisableHardwareAcceleration @start
+        invert(boolean($pause)) => $RunAndPause @start
+        adjust($display:('vnc', 'spice')) => $DisplayType @start
+        invert(boolean($acpi)) => $AcpiDisable @start
+        bootorder($boot) => $BootDevice @start
+        $cdrom => $IsoFileName @start
+        $floppy => $FloppyPath @start
+        host_id($host) => $DestinationHostId @start
+        boolean($stateless) => $RunAsStateless @start
+        boolean($reinit) => $Reinitialize @start
+
+        # Move-Vm parameters
+        host_id($host) => $DestHostId @migrate
+        """
     def create(self, vm, input):
         filter = create_filter(vmid=vm)
         result = powershell.execute('Select-Vm | %s'
@@ -53,26 +70,4 @@ class VmControlCollection(RhevmCollection):
 def setup_module(app):
     app.add_route('/api/vms/:vm/control', method='POST',
                   collection='vmcontrol', action='create')
-    proc = ArgumentProcessor()
-    proc.rules("""
-        $command:('start', 'stop', 'shutdown', 'suspend', 'migrate') *
-                => $command
-
-        # Start-Vm parameters
-        invert(boolean($hwaccel)) => $DisableHardwareAcceleration [start]
-        invert(boolean($pause)) => $RunAndPause [start]
-        adjust($display:('vnc', 'spice')) => $DisplayType [start]
-        invert(boolean($acpi)) => $AcpiDisable [start]
-        bootorder($boot) => $BootDevice [start]
-        $cdrom => $IsoFileName [start]
-        $floppy => $FloppyPath [start]
-        host_id($host) => $DestinationHostId [start]
-        boolean($stateless) => $RunAsStateless [start]
-        boolean($reinit) => $Reinitialize [start]
-
-        # Move-Vm parameters
-        host_id($host) => $DestHostId [migrate]
-    """)
-    app.add_input_filter(StructuredInput(proc), collection='vmcontrol')
-    app.add_output_filter(StructuredOutput(proc), collection='vmcontrol')
     app.add_collection(VmControlCollection())
