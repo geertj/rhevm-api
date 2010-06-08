@@ -7,8 +7,15 @@
 # "AUTHORS" for a complete overview.
 
 from rest.collection import Collection
+from rhevm.api import powershell
 
 
 class RhevmCollection(Collection):
+    """Base class for all rhevm-api collections."""
 
     objectname = None
+
+    def _get_tags(self):
+        tags = super(RhevmCollection, self)._get_tags()
+        tags.append('rhevm%d%s' % powershell.version[:2])
+        return tags
