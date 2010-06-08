@@ -76,6 +76,6 @@ class AddServerIdentification(OutputFilter):
 
 
 def setup_module(app):
-    app.add_input_filter(RequireAuthentication())
+    app.add_input_filter(RequireAuthentication(), priority=20)
     app.add_output_filter(AddServerIdentification())
     app.add_exception_handler(HandleArgProcError())
