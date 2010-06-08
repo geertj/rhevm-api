@@ -175,7 +175,6 @@ class PowerShell(object):
         textout = output[:p1]
         xmlout = output[p1:]
         xmlout = xmlout.replace('\r\n', '')  # line wrapping (sigh...)
-        print 'xml', xmlout
         if status:
             if xmlout:
                 objects = self._parse_objects(xmlout)
