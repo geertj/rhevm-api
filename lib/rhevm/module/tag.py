@@ -17,8 +17,8 @@ class TagCollection(RhevmCollection):
 
     name = 'tags'
     entity_transform = """
-        int($id) <=> int($TagID) [!attach_to_object]
-        int($id) => $Id [attach_to_object]
+        int($id) <=> int($TagID) @!attach_to_object
+        int($id) => $Id @attach_to_object
         $name <=> $Name
         $description <=> $Description
         boolean($readonly) <=> boolean($ReadOnly)
