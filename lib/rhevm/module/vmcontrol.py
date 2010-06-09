@@ -22,16 +22,16 @@ class VmControlCollection(RhevmCollection):
                 => $command *
 
         # Start-Vm parameters
-        invert(boolean($hwaccel)) => $DisableHardwareAcceleration @start
-        invert(boolean($pause)) => $RunAndPause @start
-        adjust($display:('vnc', 'spice')) => $DisplayType @start
-        invert(boolean($acpi)) => $AcpiDisable @start
-        bootorder($boot) => $BootDevice @start
-        $cdrom => $IsoFileName @start
-        $floppy => $FloppyPath @start
-        host_id($host) => $DestinationHostId @start
-        boolean($stateless) => $RunAsStateless @start
-        boolean($reinit) => $Reinitialize @start
+        invert(boolean($hwaccel)) => $DisableHardwareAcceleration @create
+        invert(boolean($pause)) => $RunAndPause @create
+        adjust($display:('vnc', 'spice')) => $DisplayType @create
+        invert(boolean($acpi)) => $AcpiDisable @create
+        bootorder($boot) => $BootDevice @create
+        $cdrom => $IsoFileName @create
+        $floppy => $FloppyPath @create
+        host_id($host) => $DestinationHostId @create
+        boolean($stateless) => $RunAsStateless @create
+        boolean($reinit) => $Reinitialize @create
 
         # Move-Vm parameters
         host_id($host) => $DestHostId @migrate
