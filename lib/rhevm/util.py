@@ -73,7 +73,7 @@ def create_cmdline(**kwargs):
         value = kwargs[key]
         if key.startswith('!'):
             continue
-        elif value in (None, False):
+        elif value is None:
             pass
         elif value is True:
             arguments.append('-%s' % key)
