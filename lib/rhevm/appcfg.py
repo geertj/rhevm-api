@@ -58,7 +58,8 @@ class AddServerIdentification(OutputFilter):
     """Add a Server: header to the response."""
 
     def filter(self, output):
-        server = 'rhevm-api/%s' % '.'.join(map(str, rhevm.version))
+        server = response.header('Server')
+        server += 'rhevm-api/%s' % '.'.join(map(str, rhevm.version))
         server += ' rhevm/%s' % '.'.join(map(str, powershell.version))
         response.set_header('Server', server)
         return output
