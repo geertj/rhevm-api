@@ -11,7 +11,6 @@ import binascii
 from rest import InputFilter, OutputFilter, ExceptionHandler, Error
 from rest import http
 from rest.api import request, response
-from argproc.error import Error as ArgProcError
 import rhevm
 from rhevm.api import powershell
 from rhevm.powershell import PowerShellError, WindowsError
@@ -55,16 +54,6 @@ class RequireAuthentication(InputFilter):
         return input
 
 
-class HandleArgProcError(ExceptionHandler):
-    """Handle an ArgProc error (return 400 (BAD_REQUEST))."""
-
-    def handle(self, exception):
-        if isinstance(exception, ArgProcError):
-            reason = 'Error processing arguments: %s' % str(exception)
-            return Error(http.BAD_REQUEST, reason=reason)
-        return exception
-
-
 class AddServerIdentification(OutputFilter):
     """Add a Server: header to the response."""
 
@@ -78,4 +67,3 @@ class AddServerIdentification(OutputFilter):
 def setup_module(app):
     app.add_input_filter(RequireAuthentication(), priority=20)
     app.add_output_filter(AddServerIdentification())
-    app.add_exception_handler(HandleArgProcError())
