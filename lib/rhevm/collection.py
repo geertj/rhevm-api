@@ -7,6 +7,7 @@
 # "AUTHORS" for a complete overview.
 
 from rest.collection import Collection
+from rest.api import request
 from rhevm.api import powershell
 
 
@@ -16,4 +17,6 @@ class RhevmCollection(Collection):
     def _get_tags(self):
         tags = super(RhevmCollection, self)._get_tags()
         tags.append('rhevm%d%s' % powershell.version[:2])
+        if 'command' in request.args:
+            tags.append(request.args['command'])
         return tags
