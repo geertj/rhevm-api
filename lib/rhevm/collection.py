@@ -25,7 +25,6 @@ class RhevmCollection(Collection):
         return tags
 
     def _get_detail(self):
-        ctypes = ['text/xml', 'text/yaml']
         for i in range(4):
             ctypes.append('text/xml; detail=%s' % i)
             ctypes.append('text/yaml; detail=%s' % i)
@@ -34,7 +33,7 @@ class RhevmCollection(Collection):
             return
         sub, subtype, params = http.parse_content_type(ctype)
         try:
-            detail = int(params.get('detail', '1'))
+            detail = int(params['detail'])
         except ValueError:
             raise HTTPReturn(http.NOT_ACCEPTABLE,
                              reason='Non-integer "detail" in Accept header.')
