@@ -6,9 +6,12 @@
 # RHEVM-API is copyright (c) 2010 by the RHEVM-API authors. See the file
 # "AUTHORS" for a complete overview.
 
+from rest import http
+from rest.api import request
 from rest.collection import Collection
 from rest.api import request
 from rhevm.api import powershell
+from rest.error import error as HTTPReturn
 
 
 class RhevmCollection(Collection):
@@ -20,3 +23,19 @@ class RhevmCollection(Collection):
         if 'command' in request.args:
             tags.append(request.args['command'])
         return tags
+
+    def _get_detail(self):
+        ctypes = ['text/xml', 'text/yaml']
+        for i in range(4):
+            ctypes.append('text/xml; detail=%s' % i)
+            ctypes.append('text/yaml; detail=%s' % i)
+        ctype = request.preferred_content_type(ctypes)
+        if ctype is None:
+            return
+        sub, subtype, params = http.parse_content_type(ctype)
+        try:
+            detail = int(params.get('detail', '1'))
+        except ValueError:
+            raise HTTPReturn(http.NOT_ACCEPTABLE,
+                             reason='Non-integer "detail" in Accept header.')
+        return detail
