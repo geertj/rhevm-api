@@ -16,6 +16,7 @@ class VmTicketCollection(RhevmCollection):
     """REST API for controlling a VM's state."""
 
     name = 'ticket'
+    contains = 'ticket'
     entity_transform = """
         $!type => $!type
         $ticket => $Ticket

@@ -16,6 +16,7 @@ class VmControlCollection(RhevmCollection):
     """REST API for controlling a VM's state."""
 
     name = 'vmcontrol'
+    contains = 'control'
     entity_transform = """
         $!type => $!type
         $command:('start', 'stop', 'shutdown', 'suspend', 'migrate')

@@ -15,6 +15,7 @@ class TaskCollection(RhevmCollection):
     """REST API for managing a VM's network cards."""
 
     name = 'tasks'
+    contains = 'task'
     entity_transform = """
         $!type <=> $!type
         $status <= $Status

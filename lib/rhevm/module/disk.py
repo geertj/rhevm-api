@@ -17,6 +17,7 @@ class DiskCollection(RhevmCollection):
     """REST API for managing a VM's disks."""
 
     name = 'disks'
+    contains = 'image'
     entity_transform = """
         $!type => $!type
         $!type <= "disk"

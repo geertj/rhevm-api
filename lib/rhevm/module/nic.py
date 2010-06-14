@@ -16,6 +16,7 @@ class NicCollection(RhevmCollection):
     """REST API for managing a VM's network cards."""
 
     name = 'nics'
+    contains = 'vmnetworkadapter'
     entity_transform = """
         $!type => $!type
         $!type <= "nic"

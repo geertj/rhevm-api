@@ -16,6 +16,7 @@ class DataCenterCollection(RhevmCollection):
     """REST API for managing datacenters."""
 
     name = 'datacenters'
+    contains = 'datacenter'
     entity_transform = """
         $!type <=> $!type
         $id <= $DataCenterId
@@ -49,12 +50,9 @@ class DataCenterCollection(RhevmCollection):
         else:
             compat = ''
         powershell.execute('$dc = Add-DataCenter %s %s' % (compat, cmdline))
-        updates = []
-        for key in input:
-            updates.append('$dc.%s = "%s"' % (key, input[key]))
-        updates = '; '.join(updates)
-        result = powershell.execute('%s; Update-DataCenter'
-                                    ' -DataCenterObject $dc' % updates)
+        updates = create_setattr('dc', **input)
+        powershell.execute(updates)
+        result = powershell.execute('Update-DataCenter -DataCenterObject $dc')
         url = mapper.url_for(collection=self.name, action='show',
                              id=result[0]['DataCenterId'])
         return url, result[0]
@@ -65,12 +63,9 @@ class DataCenterCollection(RhevmCollection):
                                     ' | Tee-Object -Variable dc' % filter)
         if len(result) != 1:
             raise KeyError
-        updates = []
-        for key in input:
-            updates.append('$dc.%s = "%s"' % (key, input[key]))
-        updates = '; '.join(updates)
-        result = powershell.execute('%s; Update-DataCenter'
-                                    ' -DataCenterObject $dc' % updates)
+        updates = create_setattr('dc', **input)
+        powershell.execute(updates)
+        result = powershell.execute('Update-DataCenter -DataCenterObject $dc')
         return result[0]
 
     def delete(self, id):

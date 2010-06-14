@@ -16,6 +16,7 @@ class TagCollection(RhevmCollection):
     """REST API for managing tags."""
 
     name = 'tags'
+    contains = 'tag'
     entity_transform = """
         $!type <=> $!type
         int($id) <=> int($TagID) @!attach_to_object

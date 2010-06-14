@@ -17,6 +17,7 @@ class VmCollection(RhevmCollection):
     """REST API for managing virtual machines."""
 
     name = 'vms'
+    contains = 'vm'
     entity_transform = """
         $!type <=> $!type
         # Properties required for creation
@@ -85,15 +86,12 @@ class VmCollection(RhevmCollection):
 
     def create(self, input):
         props = ('Name', 'TemplateObject', 'HostClusterId', 'VmType')
-        print 'INPUT', input
         args = dict(((prop, input.pop(prop)) for prop in props))
         cmdline = create_cmdline(**args)
         result = powershell.execute('$vm = Add-VM %s' % cmdline)
-        updates = []
-        for key in input:
-            updates.append('$vm.%s = "%s"' % (key, input[key]))
-        updates = '; '.join(updates)
-        result = powershell.execute('%s; Update-Vm -VmObject $vm' % updates)
+        updates = create_setattr('vm', **input)
+        powershell.execute(updates)
+        result = powershell.execute('Update-Vm -VmObject $vm')
         url = mapper.url_for(collection=self.name, action='show',
                              id=result[0]['VmId'])
         return url, result[0]
@@ -104,11 +102,9 @@ class VmCollection(RhevmCollection):
                                     ' | Tee-Object -Variable vm' % filter)
         if len(result) != 1:
             raise KeyError
-        updates = []
-        for key in input:
-            updates.append('$vm.%s = "%s"' % (key, input[key]))
-        updates = '; '.join(updates)
-        result = powershell.execute('%s; Update-Vm -VmObject $vm' % updates)
+        updates = create_setattr('vm', **input)
+        powershell.execute(updates)
+        result = powershell.execute('Update-Vm -VmObject $vm')
         return result[0]
 
     def delete(self, id):

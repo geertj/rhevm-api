@@ -36,7 +36,7 @@ class TestDisk(RhevmTest):
                        headers=headers)
         response = client.getresponse()
         assert response.status == http.CREATED
-        assert response.getheader('Content-Type') == 'text/yaml'
+        assert response.getheader('Content-Type') == 'text/yaml; charset=utf-8'
         assert response.getheader('Location')
         location = response.getheader('Location')
         diskpath = urlparse(response.getheader('Location')).path
@@ -44,14 +44,14 @@ class TestDisk(RhevmTest):
         client.request('GET', '%s/disks' % vmpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
-        assert response.getheader('Content-Type') == 'text/yaml'
+        assert response.getheader('Content-Type') == 'text/yaml; charset=utf-8'
         result = yaml.load(response.read())
         assert len(result) == 1
         assert result[0]['size'] == 8
         client.request('GET', diskpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
-        assert response.getheader('Content-Type') == 'text/yaml'
+        assert response.getheader('Content-Type') == 'text/yaml; charset=utf-8'
         data = yaml.load(response.read())
         assert data['size'] == 8
         client.request('DELETE', diskpath, headers=headers)
