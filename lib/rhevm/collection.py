@@ -11,7 +11,7 @@ from rest.api import request
 from rest.collection import Collection
 from rest.api import request
 from rhevm.api import powershell
-from rest.error import error as HTTPReturn
+from rest.error import HTTPReturn
 
 
 class RhevmCollection(Collection):
