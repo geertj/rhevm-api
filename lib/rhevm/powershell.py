@@ -25,9 +25,8 @@ def escape(s):
 class PowerShellError(Error):
     """A PowerShell command exited with an error."""
 
-    def __init__(self, message=None, category=None, id=None):
+    def __init__(self, message=None, id=None):
         self.message = message
-        self.category = category
         self.id = id
 
     def __str__(self):
@@ -90,7 +89,10 @@ class PowerShell(object):
         elif type.startswith('System.'):
             return node.text
         elif type.startswith('RhevmCmd.'):
-            resource = Resource(type[12:].lower())
+            type = type[9:]
+            if type.startswith('CLI'):
+                type = type[3:]
+            resource = Resource(type.lower())
             for child in node:
                 resource[child.attrib['Name']] = self._convert_xml_node(child)
             return resource
@@ -123,11 +125,22 @@ class PowerShell(object):
         for node in xml[0]:
             name = node.attrib['Name']
             if name == 'Exception':
-                error.message = node.text
-            elif name == 'CategoryInfo':
-                error.category = node.text
+                message = node.text
+                p1 = message.find(': ')
+                if p1 == -1:
+                    p1 = 0
+                else:
+                    p1 += 2
+                p2 = message.find(' at System.')
+                if p2 == -1:
+                    p2 = len(message)
+                error.message = message[p1:p2]
             elif name == 'FullyQualifiedErrorId':
-                error.id = node.text
+                id = node.text
+                p1 = id.find(',')
+                if p1 == -1:
+                    p1 = len(id)
+                error.id = 'rhevm.powershell.%s' % id[:p1].lower()
         return error
 
     re_comment = re.compile('#.*$', re.M)

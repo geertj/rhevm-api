@@ -11,6 +11,9 @@ import binascii
 from rest import InputFilter, OutputFilter, ExceptionHandler, Error
 from rest import http
 from rest.api import request, response
+from rest.entity import FormatEntity
+from rest.resource import Resource
+
 import rhevm
 from rhevm.api import powershell
 from rhevm.powershell import PowerShellError, WindowsError
@@ -52,6 +55,21 @@ class RequireAuthentication(InputFilter):
             raise Error(http.UNAUTHORIZED, headers, reason='Could not logon.')
         rhevm.api.powershell._register(powershell)
         return input
+
+
+class HandlePowerShellError(ExceptionHandler):
+    """Handle a PowerShell error -> 400 BAD REQUEST."""
+
+    def handle(self, exception):
+        if not isinstance(exception, PowerShellError):
+            return exception
+        format = FormatEntity()
+        error = Resource('error')
+        error['id'] = exception.id
+        error['message'] = exception.message
+        body = format.filter(error)
+        headers = response.headers
+        raise Error(http.BAD_REQUEST, headers=headers, body=body)
 
 
 class AddServerIdentification(OutputFilter):
