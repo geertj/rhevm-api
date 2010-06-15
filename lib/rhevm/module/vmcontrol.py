@@ -46,18 +46,8 @@ class VmControlCollection(RhevmCollection):
             return
         command = input.pop('command')
         if command == 'start':
-            # XXX workaround for bug: Start-Vm does not honour -IsoFileName
-            if not 'RunAndPause' in input and 'IsoFileName' in input:
-                input['RunAndPause'] = True
-                iso = input.pop('IsoFileName')
-                cmdline = create_cmdline(**input)
-                powershell.execute('Start-Vm -VmObject $vm %s' % cmdline)
-                cmdline = create_cmdline(IsoFileName=iso)
-                powershell.execute('Mount-Disk -VmObject $vm %s' % cmdline)
-                powershell.execute('Start-Vm -VmObject $vm')
-            else:
-                cmdline = create_cmdline(**input)
-                powershell.execute('Start-Vm -VmObject $vm %s' % cmdline)
+            cmdline = create_cmdline(**input)
+            result = powershell.execute('Start-Vm -VmId $vm.VmId %s' % cmdline)
         elif command == 'stop':
             powershell.execute('Stop-Vm -VmObject $vm')
         elif command == 'shutdown':
@@ -67,6 +57,9 @@ class VmControlCollection(RhevmCollection):
         elif command == 'migrate':
             cmdline = create_cmdline(**input)
             powershell.execute('Migrate-Vm -VmObject $vm %s' % cmdline)
+        url = mapper.url_for(collection=self.name, action='show',
+                             id=result[0]['VmId'])
+        return url, result[0]
 
 
 def setup_module(app):
