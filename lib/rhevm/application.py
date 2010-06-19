@@ -28,6 +28,7 @@ class RhevmApp(Application):
         self.load_module('rhevm.module.disk')
         self.load_module('rhevm.module.ticket')
         self.load_module('rhevm.module.tag')
+        self.load_module('rhevm.module.iso')
 
     def close(self):
         powershell = rhevm.api.powershell._release()
