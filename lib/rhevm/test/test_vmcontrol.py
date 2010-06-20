@@ -26,7 +26,7 @@ class TestVmControl(RhevmTest):
                'cluster': self.cluster,
                'type': 'server' }
         body = yaml.dump(vm)
-        headers['Content-Type'] = 'text/yaml'
+        headers['Content-Type'] = 'text/x-yaml'
         client.request('POST', '/api/vms', body=body, headers=headers)
         response = client.getresponse()
         assert response.status == http.CREATED
@@ -58,7 +58,7 @@ class TestVmControl(RhevmTest):
         body = yaml.dump(command)
         client.request('POST', ctrlpath, body=body, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.CREATED
         # Wait max 2 minutes until the VM is launched
         now = time.time()
         while time.time() < now + 120:
@@ -76,7 +76,7 @@ class TestVmControl(RhevmTest):
         body = yaml.dump(command)
         client.request('POST', ctrlpath, body=body, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.CREATED
         # Wait until it is suspended
         now = time.time()
         while time.time() < now + 120:
@@ -95,7 +95,7 @@ class TestVmControl(RhevmTest):
         body = yaml.dump(command)
         client.request('POST', ctrlpath, body=body, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.CREATED
         # Wait until it is up again
         now = time.time()
         while time.time() < now + 60:
@@ -112,7 +112,7 @@ class TestVmControl(RhevmTest):
         body = yaml.dump(command)
         client.request('POST', ctrlpath, body=body, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.CREATED
         # Wait until it is stopped
         now = time.time()
         while time.time() < now + 120:
@@ -127,7 +127,7 @@ class TestVmControl(RhevmTest):
         # Now delete it
         client.request('DELETE', vmpath, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.NO_CONTENT
 
     def test_boot_with_cdrom(self):
         client = self.client
@@ -138,7 +138,7 @@ class TestVmControl(RhevmTest):
                'cluster': self.config['cluster'],
                'type': 'server' }
         body = yaml.dump(vm)
-        headers['Content-Type'] = 'text/yaml'
+        headers['Content-Type'] = 'text/x-yaml'
         client.request('POST', '/api/vms', body=body, headers=headers)
         response = client.getresponse()
         assert response.status == http.CREATED
@@ -162,7 +162,7 @@ class TestVmControl(RhevmTest):
         body = yaml.dump(command)
         client.request('POST', ctrlpath, body=body, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.CREATED
         # Wait max 2 minutes until the VM is launched
         now = time.time()
         while time.time() < now + 120:
@@ -172,13 +172,14 @@ class TestVmControl(RhevmTest):
             data = yaml.load(response.read())
             if data['status'] == 'up':
                 break
+            print 'state = %s, sleeping' % data['status']
             time.sleep(10)
         # Stop it
         command = { 'command': 'stop' }
         body = yaml.dump(command)
         client.request('POST', ctrlpath, body=body, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.CREATED
         # Wait until it is stopped
         now = time.time()
         while time.time() < now + 120:
@@ -193,4 +194,4 @@ class TestVmControl(RhevmTest):
         # Now delete it
         client.request('DELETE', vmpath, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.NO_CONTENT

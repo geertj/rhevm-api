@@ -24,7 +24,7 @@ class TestNic(RhevmTest):
                'cluster': self.cluster,
                'type': 'server' }
         body = yaml.dump(vm)
-        headers['Content-Type'] = 'text/yaml'
+        headers['Content-Type'] = 'text/x-yaml'
         client.request('POST', '/api/vms', body=body, headers=headers)
         response = client.getresponse()
         assert response.status == http.CREATED
@@ -38,7 +38,7 @@ class TestNic(RhevmTest):
                        headers=headers)
         response = client.getresponse()
         assert response.status == http.CREATED
-        assert response.getheader('Content-Type') == 'text/yaml'
+        assert response.getheader('Content-Type') == 'text/x-yaml; charset=utf-8'
         assert response.getheader('Location')
         location = response.getheader('Location')
         nicpath = urlparse(response.getheader('Location')).path
@@ -46,24 +46,24 @@ class TestNic(RhevmTest):
         client.request('GET', '%s/nics' % vmpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
-        assert response.getheader('Content-Type') == 'text/yaml'
+        assert response.getheader('Content-Type') == 'text/x-yaml; charset=utf-8'
         result = yaml.load(response.read())
         assert len(result) == 1
         assert result[0]['name'] == nic['name']
         client.request('GET', nicpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.OK
-        assert response.getheader('Content-Type') == 'text/yaml'
+        assert response.getheader('Content-Type') == 'text/x-yaml; charset=utf-8'
         data = yaml.load(response.read())
         assert data['name'] == 'eth0'
         assert data['type'] == 'e1000'
         assert data['network'] == 'rhevm'
         client.request('DELETE', nicpath, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.NO_CONTENT
         client.request('DELETE', nicpath, headers=headers)
         response = client.getresponse()
         assert response.status == http.NOT_FOUND
         client.request('DELETE', vmpath, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.NO_CONTENT

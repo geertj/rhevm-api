@@ -20,7 +20,7 @@ class TestVm(RhevmTest):
         client = self.client
         headers = self.headers
         # Create a VM
-        headers['Content-Type'] = 'text/yaml'
+        headers['Content-Type'] = 'text/x-yaml'
         data = { 'name': 'test-%s' % random.randint(0, 1000000),
                  'template': self.template,
                  'cluster': self.cluster,

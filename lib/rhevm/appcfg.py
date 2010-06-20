@@ -11,7 +11,7 @@ import binascii
 from rest import InputFilter, OutputFilter, ExceptionHandler, Error
 from rest import http
 from rest.api import request, response
-from rest.entity import FormatEntity
+from rest.protocol import FormatEntity
 from rest.resource import Resource
 
 import rhevm

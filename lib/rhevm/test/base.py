@@ -108,7 +108,7 @@ class RhevmTest(object):
         auth = '%s@%s:%s' % (username, domain, password)
         auth = 'Basic %s' % auth.encode('base64').rstrip()
         self.headers = { 'Authorization': auth,
-                         'Accept': 'text/yaml',
+                         'Accept': 'text/x-yaml',
                          'Host': 'localhost:%s' % self.client.port }
 
     def tearDown(self):

@@ -20,7 +20,7 @@ class TestTag(RhevmTest):
         client = self.client
         headers = self.headers
         # Create a new tag with a random name
-        headers['Content-Type'] = 'text/yaml'
+        headers['Content-Type'] = 'text/x-yaml'
         data = { 'name': 'test-%s' % random.randint(0, 1000000000) }
         body = yaml.dump(data)
         client.request('POST', '/api/tags', body=body, headers=headers)
@@ -55,4 +55,4 @@ class TestTag(RhevmTest):
         # Remove it
         client.request('DELETE', url.path, headers=headers)
         response = client.getresponse()
-        assert response.status in (http.OK, http.NO_CONTENT)
+        assert response.status == http.NO_CONTENT

@@ -10,8 +10,8 @@ from rest.api import mapper
 from rhevm.api import powershell
 from rhevm.util import *
 from rhevm.collection import RhevmCollection
-from rest.entity import (ParseEntity, FormatEntity, TransformResource,
-                         ReverseResource)
+from rest.protocol import (ParseEntity, FormatEntity, TransformResource,
+                           ReverseTransformResource)
 
 
 class TagCollection(RhevmCollection):
@@ -125,8 +125,10 @@ def setup_module(app):
                   collection='tags', action='attach_to_object')
     app.add_route('/api/:type/:id/tags/:tag', method='DELETE',
                   collection='tags', action='detach_from_object')
+
     app.add_input_filter(ParseEntity(), action='attach_to_object')
     app.add_input_filter(TransformResource(), action='attach_to_object')
-    app.add_output_filter(ReverseResource(), action='attach_to_object')
+    app.add_output_filter(ReverseTransformResource(), action='attach_to_object')
     app.add_output_filter(FormatEntity(), action='attach_to_object')
+
     app.add_collection(TagCollection())

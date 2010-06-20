@@ -73,7 +73,6 @@ class TestPowerShell(RhevmTest):
             self.powershell.execute('Add-DataCenter -foo bar')
         except PowerShellError, e:
             assert len(e.message) > 0
-            assert len(e.category) > 0
             assert len(e.id) > 0
         else:
             raise AssertionError, 'Test did not raise exception.'

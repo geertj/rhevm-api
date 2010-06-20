@@ -26,7 +26,7 @@ class TestVmTicket(RhevmTest):
                'cluster': self.cluster,
                'type': 'server' }
         body = yaml.dump(vm)
-        headers['Content-Type'] = 'text/yaml'
+        headers['Content-Type'] = 'text/x-yaml'
         client.request('POST', '/api/vms', body=body, headers=headers)
         response = client.getresponse()
         assert response.status == http.CREATED
@@ -58,7 +58,7 @@ class TestVmTicket(RhevmTest):
         body = yaml.dump(command)
         client.request('POST', ctrlpath, body=body, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.CREATED
         # Wait max 2 minutes until the VM is launched
         now = time.time()
         while time.time() < now + 120:
@@ -77,13 +77,13 @@ class TestVmTicket(RhevmTest):
         body = yaml.dump(ticket)
         client.request('POST', ticketpath, body=body, headers=headers)
         response = client.getresponse()
-        assert response.status in (http.OK, http.CREATED)
+        assert response.status == http.CREATED
         # Stop the VM
         command = { 'command': 'stop' }
         body = yaml.dump(command)
         client.request('POST', ctrlpath, body=body, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.CREATED
         # Wait until it is stopped
         now = time.time()
         while time.time() < now + 120:
@@ -98,4 +98,4 @@ class TestVmTicket(RhevmTest):
         # Now delete it
         client.request('DELETE', vmpath, headers=headers)
         response = client.getresponse()
-        assert response.status == http.OK
+        assert response.status == http.NO_CONTENT

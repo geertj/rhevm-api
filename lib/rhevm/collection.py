@@ -17,11 +17,10 @@ from rest.error import HTTPReturn
 class RhevmCollection(Collection):
     """Base class for all rhevm-api collections."""
 
-    def _get_tags(self):
-        tags = super(RhevmCollection, self)._get_tags()
+    def _get_tags(self, tags, resource):
         tags.append('rhevm%d%s' % powershell.version[:2])
-        if 'command' in request.args:
-            tags.append(request.args['command'])
+        if 'command' in resource:
+            tags.append(resource['command'])
         return tags
 
     def _get_detail(self):

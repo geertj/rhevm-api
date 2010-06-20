@@ -19,7 +19,7 @@ class TestDataCenter(RhevmTest):
     def test_crud(self):
         client = self.client
         headers = self.headers
-        headers['Content-Type'] = 'text/yaml'
+        headers['Content-Type'] = 'text/x-yaml'
         data = { 'name': 'test-%s' % random.randint(0, 1000000000),
                  'type': 'NFS' }
         body = yaml.dump(data)
@@ -34,7 +34,7 @@ class TestDataCenter(RhevmTest):
         assert response.status == http.OK
         ctype = response.getheader('Content-Type')
         ctype = http.parse_content_type(ctype)
-        assert ctype[:2] == ('text', 'yaml')
+        assert ctype[:2] == ('text', 'x-yaml')
         result = yaml.load(response.read())
         for entry in result:
             if entry['name'] == data['name']:
@@ -52,7 +52,7 @@ class TestDataCenter(RhevmTest):
         assert response.status == http.OK
         ctype = response.getheader('Content-Type')
         ctype = http.parse_content_type(ctype)
-        assert ctype[:2] == ('text', 'yaml')
+        assert ctype[:2] == ('text', 'x-yaml')
         parsed = yaml.load(response.read())
         print 'PARSED', parsed
         assert parsed['type'] == 2  # XXX
