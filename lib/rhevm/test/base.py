@@ -96,7 +96,7 @@ class RhevmTest(object):
             self.thread = None
             self.powershell = None
         else:
-            self.server = make_server('localhost', 0, RhevmApp)
+            self.server = make_server('localhost', 0, RhevmApplication)
             self.thread = threading.Thread(target=self.server.serve_forever)
             self.thread.start()
             time.sleep(0.5)

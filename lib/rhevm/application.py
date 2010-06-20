@@ -15,11 +15,11 @@ from rhevm.util import create_powershell
 rhevm.api.pool = Pool(PowerShell, create_powershell)
 
 
-class RhevmApp(Application):
+class RhevmApplication(Application):
     """The RHEVM API application."""
 
     def load_modules(self):
-        super(RhevmApp, self).load_modules()
+        super(RhevmApplication, self).load_modules()
         self.load_module('rhevm.appcfg')
         self.load_module('rhevm.module.datacenter')
         self.load_module('rhevm.module.vm')
