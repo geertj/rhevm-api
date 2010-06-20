@@ -12,6 +12,6 @@ from rhevm._version import *
 
 # Allow this package to be imported on non-Windows platforms as well
 # (to run the test suite remotely).
-if sys.platform in ('win32', 'win64'):
+if sys.platform == 'win32':
     from rhevm.application import RhevmApp
     from rhevm.powershell import PowerShell, PowerShellError
