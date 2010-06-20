@@ -152,11 +152,13 @@ class PowerShell(object):
         command = self.re_whitespace.sub(' ', command)
         return command
         
-    def execute(self, command):
+    def execute(self, command, *args):
         """Execute a command. Return a string, a list of objects, or
         raises an exception."""
         if self.child is None:
             self.start()
+        if args:
+            command %= tuple(map(escape, args))
         script = """
             Write-Host "START-OF-OUTPUT-MARKER";
             try {
