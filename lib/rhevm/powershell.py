@@ -147,7 +147,7 @@ class PowerShell(object):
     re_whitespace = re.compile('\s+')
 
     def _compact(self, command):
-        """INTERNAL: compat a powershell command (for logging)."""
+        """INTERNAL: compact a powershell command (for logging)."""
         command = self.re_comment.sub('', command)
         command = self.re_whitespace.sub(' ', command)
         return command
