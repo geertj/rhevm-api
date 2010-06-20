@@ -57,6 +57,19 @@ class RequireAuthentication(InputFilter):
         return input
 
 
+class AddServerIdentification(OutputFilter):
+    """Add a Server: header to the response."""
+
+    def filter(self, output):
+        server = response.header('Server')
+        if server:
+            server += ' '
+        server += 'rhevm-api/%s' % '.'.join(map(str, rhevm.version))
+        server += ' rhevm/%s' % '.'.join(map(str, powershell.version))
+        response.set_header('Server', server)
+        return output
+
+
 class HandlePowerShellError(ExceptionHandler):
     """Handle a PowerShell error -> 400 BAD REQUEST."""
 
@@ -72,17 +85,7 @@ class HandlePowerShellError(ExceptionHandler):
         raise Error(http.BAD_REQUEST, headers=headers, body=body)
 
 
-class AddServerIdentification(OutputFilter):
-    """Add a Server: header to the response."""
-
-    def filter(self, output):
-        server = response.header('Server')
-        server += 'rhevm-api/%s' % '.'.join(map(str, rhevm.version))
-        server += ' rhevm/%s' % '.'.join(map(str, powershell.version))
-        response.set_header('Server', server)
-        return output
-
-
 def setup_module(app):
     app.add_input_filter(RequireAuthentication(), priority=20)
     app.add_output_filter(AddServerIdentification())
+    app.add_exception_handler(HandlePowerShellError())
