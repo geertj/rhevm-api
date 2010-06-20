@@ -10,7 +10,6 @@ import sys
 import logging
 
 from rhevm.api import powershell
-from rhevm.query import QueryParser
 from rhevm.powershell import PowerShell, escape
 
 
@@ -218,11 +217,6 @@ def adjust(s):
         return 'COW'
     elif s == 'raw':
         return 'RAW'
-
-def parse_query(s):
-    parser = QueryParser()
-    parsed = parser.parse(s)
-    return parsed.tostring()
 
 def bootorder(s):
     """Validate a boot order."""

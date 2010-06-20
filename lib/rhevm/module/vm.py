@@ -67,7 +67,7 @@ class VmCollection(RhevmCollection):
         $port <= int($DisplayPort)
 
         # Searching
-        parse_query($query) => $query @list
+        $query @list
         """
 
     def show(self, id):
