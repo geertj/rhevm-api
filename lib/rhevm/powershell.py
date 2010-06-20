@@ -134,13 +134,13 @@ class PowerShell(object):
                 p2 = message.find(' at System.')
                 if p2 == -1:
                     p2 = len(message)
-                error.message = message[p1:p2]
+                error.message = message[p1:p2].strip()
             elif name == 'FullyQualifiedErrorId':
                 id = node.text
                 p1 = id.find(',')
                 if p1 == -1:
                     p1 = len(id)
-                error.id = 'rhevm.powershell.%s' % id[:p1].lower()
+                error.id = 'rhevm.powershell.backend.%s' % id[:p1].lower()
         return error
 
     re_comment = re.compile('#.*$', re.M)
