@@ -16,7 +16,7 @@ from setuptools import setup, Extension, Command
 
 version_info = {
     'name': 'rhevm-api',
-    'version': '0.8.4',
+    'version': '0.9.0',
     'description': 'A REST mapping of the PowerShell API of RHEV-M.',
     'author': 'Geert Jansen',
     'author_email': 'geert@boskant.nl',
