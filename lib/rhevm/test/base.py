@@ -20,8 +20,12 @@ from ConfigParser import ConfigParser
 from nose import SkipTest
 from rest import http
 from rest.server import make_server
+from rest.util import _pyyaml_construct_resources, _pyyaml_represent_resources
 from rhevm import *
 from rhevm.util import setup_logging
+
+_pyyaml_construct_resources()
+_pyyaml_represent_resources()
 
 
 def local_only(func):
@@ -32,6 +36,7 @@ def local_only(func):
         func(self)
     run_test.__name__ = func.__name__
     return run_test
+
 
 def require_rhev(version):
     """Skip a test if we don't have a minimum RHEV version."""
@@ -47,6 +52,7 @@ def require_rhev(version):
         run_test.__name__ = func.__name__
         return run_test
     return decorator
+
 
 class TestError(Exception):
     pass
