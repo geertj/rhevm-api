@@ -71,7 +71,7 @@ setup(
     entry_points = { 'console_scripts': [
             'rhevm-api-cmdline = rhevm.server:main',
             'rhevm-api-isapi = rhevm.iis:main'] },
-    install_requires = ['winpexpect >= 1.3', 'python-rest >= 1.2',
+    install_requires = ['winpexpect >= 1.4', 'python-rest >= 1.3',
                         'pyyaml >= 3.09'],
     cmdclass = { 'build': mybuild },
     **version_info
