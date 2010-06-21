@@ -54,7 +54,6 @@ class TestDataCenter(RhevmTest):
         ctype = http.parse_content_type(ctype)
         assert ctype[:2] == ('text', 'x-yaml')
         parsed = yaml.load(response.read())
-        print 'PARSED', parsed
         assert parsed['type'] == 2  # XXX
         assert parsed['description'] == 'New Description'
         client.request('DELETE', url.path, headers=headers)
