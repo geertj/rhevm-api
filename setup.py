@@ -19,8 +19,8 @@ version_info = {
     'version': '0.9.0',
     'description': 'A REST mapping of the PowerShell API of RHEV-M.',
     'author': 'Geert Jansen',
-    'author_email': 'geert@boskant.nl',
-    'url': 'http://bitbucket.org/geertj/rhevm-api',
+    'author_email': 'geertj@gmail.com',
+    'url': 'http://github.com/geertj/rhevm-api',
     'license': 'MIT',
     'classifiers': [
         'Development Status :: 3 - Alpha',
